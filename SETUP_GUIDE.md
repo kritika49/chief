@@ -148,7 +148,7 @@ After install, Slack shows "run your app locally" CLI steps — ignore them.
 
 Each PM then opens **Connectors → Slack**: Chief finds their Slack account by email automatically.
 
-## Part I — Save Netlify credits: live site from `main`, free test site ⏳
+## Part I — Save Netlify credits: live site from `main`, free test site ✅
 
 Netlify free plan: 300 credits/month; each **live** (production) deploy costs 15; test (branch) deploys are free.
 
@@ -156,7 +156,8 @@ Netlify free plan: 300 credits/month; each **live** (production) deploy costs 15
    **Branches and deploy contexts** → **Configure**:
    - **Production branch**: `main`
    - **Branch deploys**: **Let me add individual branches** → add `claude/youthful-ptolemy-d5k800`
-   - **Save**.
+   - **Deploy Previews**: **None**
+   - **Save**, then **Deploys → Trigger deploy → Deploy project** once.
 2. Test site address: `https://claude-youthful-ptolemy-d5k800--chief-pm.netlify.app`
 3. Google Cloud → Google Auth Platform → Clients → Chief → **Authorized redirect URIs** → add
    `https://claude-youthful-ptolemy-d5k800--chief-pm.netlify.app/api/connect/google/callback` → Save.

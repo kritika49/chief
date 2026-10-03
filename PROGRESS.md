@@ -75,7 +75,11 @@ Google keys (Part F), then Fathom (Part H).
 - **Approve & Post** sends the update to your target channel (#product_management).
 - Tested end to end with a fake Slack loaded with messages shaped like the real channels.
 
+## Netlify credits setup ✅
+- Live site `chief-pm.netlify.app` builds from `main` only — updated when the PM says "release" (15 credits).
+- Test site `claude-youthful-ptolemy-d5k800--chief-pm.netlify.app` builds free on every save.
+
 ## Next
-- Google keys (Part F), then Fathom (Part H).
+- Retest Slack + Google on the test site, then Fathom (Part H).
 - Then: automatic Slack EOD reading (Phase 7), to-dos (Phase 6), meeting rules + new-project wizard
   (rest of Phase 4), scheduler (Phase 9).
