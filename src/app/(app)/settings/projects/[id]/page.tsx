@@ -125,31 +125,36 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
               ))}
               <ActionForm action={addChannel} label="Add channel" variant="secondary" className="rounded-lg border border-dashed p-3">
                 <input type="hidden" name="project_id" value={p.id} />
-                {slackChannels.length > 0 ? (
+                {slackChannels.length > 0 && (
                   <div className="space-y-1.5">
                     <Label htmlFor="channel">Channel</Label>
                     <Select id="channel" name="channel" defaultValue="">
-                      <option value="" disabled>Choose a channel…</option>
+                      <option value="">Choose a channel…</option>
                       {slackChannels.filter((c) => !added.has(c.id)).map((c) => (
                         <option key={c.id} value={`${c.id}|${c.name}`}>#{c.name}{c.is_member ? "" : " (Chief not invited yet)"}</option>
                       ))}
                     </Select>
                   </div>
-                ) : (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="channel_name">Channel name</Label>
-                      <Input id="channel_name" name="channel_name" placeholder="bles-internal" />
-                    </div>
+                )}
+                <details className="text-sm" open={slackChannels.length === 0}>
+                  <summary className="cursor-pointer text-muted-foreground">
+                    {slackChannels.length > 0 ? "Private channel not in the list? Add it by ID" : "Add by channel ID"}
+                  </summary>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="channel_id">Channel ID</Label>
                       <Input id="channel_id" name="channel_id" placeholder="C0BG3GPPMLN" />
                     </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="channel_name">Channel name (optional)</Label>
+                      <Input id="channel_name" name="channel_name" placeholder="bles-internal" />
+                    </div>
                     <p className="text-xs text-muted-foreground sm:col-span-2">
-                      Find the ID in Slack: open the channel → click its name at the top → scroll to the bottom of the About tab.
+                      Find the ID in Slack: open the channel → click its name at the top → the ID is at the bottom of the About tab.
+                      Chief checks it can read the channel.
                     </p>
                   </div>
-                )}
+                </details>
                 <div className="space-y-1.5">
                   <Label htmlFor="eod_keyword">EOD keyword</Label>
                   <Input id="eod_keyword" name="eod_keyword" defaultValue="EOD" className="w-28" />

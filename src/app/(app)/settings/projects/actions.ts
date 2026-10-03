@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/components/action-form";
 import { logHeaderChanges } from "@/lib/header-history";
+import { checkChannel, slackConfigured } from "@/lib/connectors/slack";
 import { HEADER_FIELDS, type ProjectHeader, type ProjectType } from "@/lib/types";
 
 const projectType = z.enum(["dev", "design_pm"]);
@@ -92,12 +93,20 @@ export async function addChannel(_: ActionResult, formData: FormData): Promise<A
   await requireUser();
   const projectId = z.string().uuid().parse(formData.get("project_id"));
   const raw = String(formData.get("channel") ?? "");
-  // From the picker: "C123|name"; manual: separate fields.
-  let [channelId, channelName] = raw.includes("|") ? raw.split("|") : [String(formData.get("channel_id") ?? ""), String(formData.get("channel_name") ?? "")];
+  const manualId = String(formData.get("channel_id") ?? "").trim();
+  // Manual ID wins (private channels); else the picker's "C123|name".
+  let [channelId, channelName] = manualId || !raw.includes("|") ? [manualId, String(formData.get("channel_name") ?? "")] : raw.split("|");
   channelId = channelId.trim().toUpperCase();
   channelName = channelName.trim().replace(/^#/, "");
   if (!/^[CG][A-Z0-9]{6,}$/.test(channelId)) {
     return { ok: false, message: "That channel ID doesn't look right. It starts with C and is about 11 characters (see the hint)." };
+  }
+  let warning = "";
+  if (slackConfigured()) {
+    const check = await checkChannel(channelId);
+    if (check.name && !channelName) channelName = check.name;
+    if (!check.member) warning = ` Chief isn't in it yet — type /invite @chief in the channel.`;
+    else if (!check.readable) warning = ` Chief is in it but can't read it: ${check.problem}`;
   }
   const keyword = String(formData.get("eod_keyword") ?? "").trim() || "EOD";
   const supabase = await createClient();
@@ -110,7 +119,7 @@ export async function addChannel(_: ActionResult, formData: FormData): Promise<A
     is_primary: (count ?? 0) === 0,
   });
   if (error) return { ok: false, message: error.code === "23505" ? "That channel is already added." : "Couldn't add the channel." };
-  return done(projectId, "Channel added.");
+  return done(projectId, `Channel added.${warning}`);
 }
 
 export async function updateChannel(_: ActionResult, formData: FormData): Promise<ActionResult> {
