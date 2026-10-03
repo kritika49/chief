@@ -472,24 +472,88 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- Row Level Security: every table, own rows only
 -- ---------------------------------------------------------------------------
-do $$
-declare t text;
-begin
-  foreach t in array array[
-    'profiles','preferences','connections','projects','header_history',
-    'channels','people','person_aliases','project_members','call_rules',
-    'pinned_lines','schedule_overrides','slack_messages','eod_bullets',
-    'meetings','meeting_items','action_items','task_matches','followups',
-    'decisions','todos','drafts','draft_bullets','posted_updates',
-    'email_drafts','nudges','job_runs'
-  ] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format(
-      'create policy "own rows" on public.%I for all to authenticated
-       using (user_id = (select auth.uid()))
-       with check (user_id = (select auth.uid()))', t);
-  end loop;
-end $$;
+alter table public.profiles enable row level security;
+alter table public.preferences enable row level security;
+alter table public.connections enable row level security;
+alter table public.projects enable row level security;
+alter table public.header_history enable row level security;
+alter table public.channels enable row level security;
+alter table public.people enable row level security;
+alter table public.person_aliases enable row level security;
+alter table public.project_members enable row level security;
+alter table public.call_rules enable row level security;
+alter table public.pinned_lines enable row level security;
+alter table public.schedule_overrides enable row level security;
+alter table public.slack_messages enable row level security;
+alter table public.eod_bullets enable row level security;
+alter table public.meetings enable row level security;
+alter table public.meeting_items enable row level security;
+alter table public.action_items enable row level security;
+alter table public.task_matches enable row level security;
+alter table public.followups enable row level security;
+alter table public.decisions enable row level security;
+alter table public.todos enable row level security;
+alter table public.drafts enable row level security;
+alter table public.draft_bullets enable row level security;
+alter table public.posted_updates enable row level security;
+alter table public.email_drafts enable row level security;
+alter table public.nudges enable row level security;
+alter table public.job_runs enable row level security;
+
+create policy "own rows" on public.profiles for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.preferences for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.connections for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.projects for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.header_history for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.channels for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.people for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.person_aliases for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.project_members for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.call_rules for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.pinned_lines for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.schedule_overrides for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.slack_messages for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.eod_bullets for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.meetings for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.meeting_items for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.action_items for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.task_matches for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.followups for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.decisions for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.todos for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.drafts for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.draft_bullets for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.posted_updates for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.email_drafts for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.nudges for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows" on public.job_runs for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 -- Connections hold encrypted secrets: signed-in users may only READ the
 -- non-secret columns. All writes happen on the server with the service role.
