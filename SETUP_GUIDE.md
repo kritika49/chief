@@ -42,7 +42,7 @@ These go into `.env.local` lines `SUPABASE_URL` and `SUPABASE_ANON_KEY`
 6. You should see **Success. No rows returned**. (If it says something already exists, the tables
    were created before — that's fine.)
 
-## Part C — Turn on "Sign in with Google" ⏳
+## Part C — Turn on "Sign in with Google" ✅
 
 ### C1. Google Cloud: create the sign-in credentials
 Your Google project is set to **Internal**, which means only people in your company's Google
@@ -57,9 +57,11 @@ Workspace can use it, and Google doesn't need to review the app.
    - Contact email: your email → **Next** → tick the agreement → **Create**
 4. In the left menu click **Clients** → **Create client**.
    - Application type: **Web application**; Name: `Chief`
-   - Under **Authorized redirect URIs** click **Add URI** and paste:
+   - Leave **Authorized JavaScript origins** empty.
+   - Under **Authorized redirect URIs** (the second section) click **Add URI** and paste:
      `https://<your-project-id>.supabase.co/auth/v1/callback`
      (your Project URL from Part A + `/auth/v1/callback`)
+   - Leave "This client will be used by an AI-powered agent" **unticked**.
    - Click **Create**.
 5. A box shows **Client ID** and **Client secret**. Keep this tab open for the next step.
 
@@ -68,8 +70,29 @@ Workspace can use it, and Google doesn't need to review the app.
 2. Turn on **Enable Sign in with Google**.
 3. Paste the **Client ID** and **Client secret** from C1 → **Save**.
 4. Supabase → **Authentication** → **URL Configuration**:
-   - Site URL: `http://localhost:3000` (we'll change it to the Netlify address in Phase 2)
+   - Site URL: `http://localhost:3000` (already the default; changed to the Netlify address in Phase 2)
    - Redirect URLs → **Add URL**: `http://localhost:3000/**` → **Save**
+
+## Part D — Put Chief online with Netlify ⏳
+
+Netlify hosts Chief so you get a web address (and so Slack/Fathom can reach it later).
+
+1. Go to <https://app.netlify.com> and sign up / log in **with GitHub**.
+2. Click **Add new project** → **Import an existing project** → **GitHub**. Authorize Netlify if asked,
+   and allow it to see the `chief` repository.
+3. Pick **chief**. On the settings screen:
+   - **Branch to deploy**: `claude/youthful-ptolemy-d5k800`
+   - **Project name**: e.g. `chief-byldd` (your address becomes `https://chief-byldd.netlify.app`)
+   - Leave build settings as they are (they come from the repository).
+4. Click **Add environment variables** → **Import from a .env file**, and paste the block of
+   settings Claude gives you in chat (Supabase URL + anon key, the two generated secrets,
+   allowed domain and admin email). Never put these in GitHub.
+5. Add one more variable by hand: key `SUPABASE_SERVICE_ROLE_KEY`, value copied from
+   Supabase → **Project Settings → API Keys** → **Secret key** (or Legacy → **service_role**, click Reveal).
+   Mark it **secret** if Netlify offers the option.
+6. Click **Deploy**. The first build takes 2–4 minutes.
+
+To save free-plan credits, Netlify only rebuilds when Claude marks a change with `[deploy]`.
 
 ## Settings file (`.env.local`)
 
