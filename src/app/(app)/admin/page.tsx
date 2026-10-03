@@ -7,6 +7,7 @@ import { ResultLine } from "@/components/action-form";
 import { StatusBadge, type Status } from "@/components/status-badge";
 import { authTest, slackConfigured } from "@/lib/connectors/slack";
 import { googleConfigured } from "@/lib/connectors/google";
+import { describeServiceKey } from "@/lib/key-check";
 
 export const metadata = { title: "Admin · Chief" };
 
@@ -34,6 +35,7 @@ export default async function AdminPage() {
     serverKey = { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 
+  const keyInfo = describeServiceKey();
   const ready = serverKey.ok && admin;
   const [{ data: profiles }, { data: conns }] = ready ? await Promise.all([
     admin!.from("profiles").select("id, email, full_name, slack_user_id, created_at").order("created_at"),
@@ -65,6 +67,8 @@ export default async function AdminPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="w-28 text-muted-foreground">Server key</span>
+              <span className="w-full text-xs text-muted-foreground sm:ml-28 sm:w-auto">Saved key: {keyInfo.summary}</span>
+              {keyInfo.problems.map((p) => <ResultLine key={p} ok={false} message={p} />)}
               {serverKey.ok ? (
                 <Badge variant="success">Working</Badge>
               ) : (
