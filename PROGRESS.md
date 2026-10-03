@@ -44,5 +44,28 @@ desktop/mobile in light and dark mode.
 - Secrets (Google token, Fathom key and webhook secret) encrypted with AES-GCM; never sent to the browser.
 - Automated tests: encryption, Fathom signature check, Fathom payload parsing.
 
+Waiting on: Slack app install (Byldd is at Slack's free 10-app limit — an unused app must be removed),
+Google keys (Part F), then Fathom (Part H).
+
+## Fast-tracked while Slack is blocked (parts of Phases 4, 5, 7, 8) ✅
+- **Projects** (Settings → Projects): create, edit name/type/status line, reorder (up/down), archive/restore.
+  Channels (picker when Slack works, else name + ID), team members with tracking mode + reminder toggle,
+  pinned lines. Header changes are logged.
+- **People** (Settings → People): name, role, email, Slack member ID, Fathom name variations.
+- **Starter data**: one-click "Load starter projects" (Bles, Dontbelated, Italica, #product_management).
+- **EOD parser** tested on the real styles used in #bles-internal and #dontbelated (bullets, dashes,
+  numbers, sub-bullets, plain lines, two days in one message).
+- **Draft & Post**: start today's draft → status lines, pinned lines, "X's update is awaited" for each
+  Slack-tracked member. **Paste an EOD** per person (manual option) or type a manual-entry person's
+  update → bullets appear with "Name:" prefix. Edit, reorder, delete, pin, add bullets; edit status line
+  inline; date-reached warnings; live Slack preview; **Copy update**; **copy-ready gentle reminders** for
+  missing EODs; "I posted it myself" saves to History. "Approve & Post" appears once the Slack app works.
+- **History**: every posted update, searchable.
+- **Preferences** (basic): timezone, target channel, email greeting/sign-off.
+- Tested end to end against a local copy of the database: starter data → draft → paste EOD → typed
+  update → preview → copy (matches exactly) → reload (saved) → mark posted → History.
+
 ## Next
-- Finish Phase 3 setup (SETUP_GUIDE Parts F, G, H), then Phase 4: projects, people, channels, meeting rules.
+- Slack app install + Google keys + Fathom (SETUP_GUIDE Parts F–H).
+- Then: automatic Slack EOD reading (Phase 7), to-dos (Phase 6), meeting rules + new-project wizard
+  (rest of Phase 4), scheduler (Phase 9).

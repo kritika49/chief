@@ -1,8 +1,12 @@
-import { Sun } from "lucide-react";
+import Link from "next/link";
+import { FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StarterDataCard } from "@/components/starter-data-card";
+import { todayIn } from "@/lib/dates";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
 import { SetupChecklist, type SetupStep } from "@/components/setup-checklist";
 import { TimezoneSync } from "./timezone-sync";
 
@@ -19,6 +23,11 @@ export default async function TodayPage() {
     supabase.from("projects").select("id", { count: "exact", head: true }),
     supabase.from("drafts").select("id", { count: "exact", head: true }),
   ]);
+  const [{ data: openDraft }, { data: lastPost }] = await Promise.all([
+    supabase.from("drafts").select("id").eq("status", "draft").maybeSingle(),
+    supabase.from("posted_updates").select("posted_at").order("posted_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  const postedToday = lastPost ? todayIn(prefs?.timezone, new Date(lastPost.posted_at)) === todayIn(prefs?.timezone) : false;
 
   const connected = (p: string) => connections?.some((c) => c.provider === p && c.status === "connected") ?? false;
   const steps: SetupStep[] = [
@@ -37,11 +46,24 @@ export default async function TodayPage() {
       <PageHeader title={`${greeting(prefs?.timezone)}, ${firstName}`} description="Here's what needs your attention today." />
       <div className="flex flex-col gap-6">
         {!setupDone && <SetupChecklist steps={steps} />}
-        <EmptyState
-          icon={Sun}
-          title="Your daily overview will appear here"
-          description="Once your projects are connected, Today shows your draft status, missing EODs, today's meetings, overdue follow-ups and anything else that needs a look."
-        />
+        <StarterDataCard email={user.email} />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FileText className="size-4" /> Today&apos;s update</CardTitle>
+            <CardDescription>
+              {postedToday
+                ? "Posted today. Nice work."
+                : openDraft
+                  ? "Your draft is open — paste any EODs, review, then copy or post."
+                  : "Not started yet. Chief assembles it from your projects; you review before anything is posted."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant={openDraft ? "default" : "outline"}>
+              <Link href="/draft">{openDraft ? "Continue draft" : postedToday ? "View draft page" : "Start today's draft"}</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </>
   );
