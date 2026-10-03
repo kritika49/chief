@@ -5,7 +5,9 @@ Status markers: ✅ done · ⏳ to do.
 
 ---
 
-## Part A — Create the Supabase project (database + sign-in) ⏳
+## Part A — Create the Supabase project (database + sign-in) ✅
+
+Done. Project URL: `https://ngutmgiodmwjpesmsgkc.supabase.co`. Public (anon) key saved in `.env.local`.
 
 Supabase stores Chief's data and handles "Sign in with Google". Free plan is enough.
 
@@ -30,7 +32,8 @@ These go into `.env.local` lines `SUPABASE_URL` and `SUPABASE_ANON_KEY`
 ## Part B — Create Chief's database tables ⏳
 
 1. Open this file on GitHub:
-   `supabase/migrations/0001_init.sql` (in the `chief` repository).
+   `supabase/migrations/0001_init.sql` (in the `chief` repository, branch `claude/youthful-ptolemy-d5k800`):
+   <https://github.com/kritika49/chief/blob/claude/youthful-ptolemy-d5k800/supabase/migrations/0001_init.sql>
 2. Click the **Copy raw file** button (two overlapping squares, top-right of the file).
 3. In Supabase, click **SQL Editor** in the left sidebar → **New query**.
 4. Paste, then click **Run** (bottom-right).
