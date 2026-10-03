@@ -3,7 +3,6 @@ import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChiefLogo } from "@/components/shell/logo";
-import { signInWithGoogle } from "./actions";
 
 export const metadata = { title: "Sign in · Chief" };
 
@@ -46,7 +45,7 @@ export default async function SignInPage({
             </p>
           )}
           {configured ? (
-            <form action={signInWithGoogle}>
+            <form action="/auth/login" method="get">
               <input type="hidden" name="next" value={next ?? "/today"} />
               <Button type="submit" className="w-full" size="lg">
                 <GoogleIcon />
