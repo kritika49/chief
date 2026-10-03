@@ -175,6 +175,13 @@ New features land on the test site first (free). The live site updates only when
 3. Chief sets up the webhook automatically. If it can't, the page shows 5 short steps to add it in
    Fathom by hand and a box to paste Fathom's webhook secret.
 
+## Tip — secret values in Netlify
+
+Netlify hides secret values behind dots (•). Never copy a value *from* Netlify into another box — you'd
+paste the dots. Always copy from the source (Supabase, Slack, Google) with its **Copy** button. If a
+setting gets mangled, delete it and create it again. **Admin → Server key** in Chief shows whether the
+Supabase secret key is valid (without revealing it).
+
 ## Settings file (`.env.local`)
 
 Chief keeps private settings in a file called `.env.local` that is never uploaded to GitHub.
