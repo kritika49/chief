@@ -30,5 +30,19 @@ desktop/mobile in light and dark mode.
 - Supabase, Google sign-in and all environment variables set up (SETUP_GUIDE.md Parts A–E).
 - To save free credits, Netlify only rebuilds when a commit message contains `[deploy]`.
 
+## Phase 3 — Connectors 🔧 (code done; waiting on Slack app + Google settings)
+- **Connectors hub** with status (Connected / Needs attention / Not connected), account, last sync.
+- **Google**: separate "Connect Google" (Calendar read-only + Gmail drafts), refresh token stored
+  encrypted, Test (calendars, next-24h events, Gmail), Reconnect, Disconnect, choose calendars.
+- **Slack**: `slack-app-manifest.yml` (app + bot name Chief); company app status; your Slack account
+  auto-matched by email (picker fallback); Test sends you a DM; channel list showing where Chief is
+  invited, with `/invite @Chief` instructions.
+- **Fathom**: paste API key → checked with Fathom → webhook created automatically (manual fallback
+  with steps + secret box). Webhook address per user; signatures verified; meetings saved with
+  summary, action items, transcript. Last meeting received shown. Test + Disconnect.
+- **Admin**: Slack app status, Google keys status, everyone's connector status.
+- Secrets (Google token, Fathom key and webhook secret) encrypted with AES-GCM; never sent to the browser.
+- Automated tests: encryption, Fathom signature check, Fathom payload parsing.
+
 ## Next
-- Phase 3: connectors — Slack (manifest + linking), Google Calendar + Gmail, Fathom (key + webhook).
+- Finish Phase 3 setup (SETUP_GUIDE Parts F, G, H), then Phase 4: projects, people, channels, meeting rules.

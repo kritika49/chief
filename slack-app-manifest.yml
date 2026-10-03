@@ -1,0 +1,25 @@
+# Chief — Slack app manifest
+# Slack → https://api.slack.com/apps → Create New App → From a manifest → paste this file.
+display_information:
+  name: Chief
+  description: Your project chief of staff.
+  background_color: "#2a4a8c"
+features:
+  bot_user:
+    display_name: Chief
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - channels:history
+      - groups:history
+      - channels:read
+      - groups:read
+      - chat:write
+      - im:write
+      - users:read
+      - users:read.email
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

@@ -111,6 +111,46 @@ To save free-plan credits, Netlify only rebuilds when Claude marks a change with
    **Add a variable** → key `APP_URL`, value `https://chief-pm.netlify.app` → **Create variable**.
 3. Open <https://chief-pm.netlify.app> → **Sign in with Google** → pick your work account.
 
+## Part F — Google Calendar + Gmail drafts (company, once) ⏳
+
+Reuses the Google Cloud project and client from Part C.
+
+1. <https://console.cloud.google.com> → make sure project **Chief** is selected.
+2. Search bar → **Google Calendar API** → **Enable**.
+3. Search bar → **Gmail API** → **Enable**.
+4. Search bar → **Google Auth Platform** → **Clients** → click **Chief** →
+   under **Authorized redirect URIs** click **Add URI** and paste
+   `https://chief-pm.netlify.app/api/connect/google/callback` → **Save**.
+   (Keep the Supabase one that's already there.)
+5. On the same client page, copy the **Client ID**, and the **Client secret** (if you can't see it,
+   click **Add secret** to make a new one).
+6. Netlify → **chief-pm** → **Project configuration → Environment variables** → **Add a variable** →
+   add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+
+Each PM then clicks **Connectors → Google → Connect Google** and ticks both boxes.
+
+## Part G — Slack app (company, once) ⏳
+
+1. Go to <https://api.slack.com/apps> → **Create New App** → **From a manifest**.
+2. Pick your company workspace → **Next**.
+3. Choose the **YAML** tab, delete what's there, and paste the contents of
+   `slack-app-manifest.yml` from the repository → **Next** → **Create**.
+4. Left menu **Install App** → **Install to <workspace>** → **Allow**.
+   (If it says it needs approval, a Slack admin approves it.)
+5. Copy the **Bot User OAuth Token** (starts with `xoxb-`) → Netlify variable `SLACK_BOT_TOKEN`.
+6. Left menu **Basic Information** → **App Credentials** → **Signing Secret** → **Show** → copy →
+   Netlify variable `SLACK_SIGNING_SECRET`.
+7. In each project channel in Slack, type `/invite @Chief`.
+
+Each PM then opens **Connectors → Slack**: Chief finds their Slack account by email automatically.
+
+## Part H — Fathom (each PM) ⏳
+
+1. In Fathom: profile picture → **Settings** → **API Access** → **Generate API key** → copy.
+2. Chief → **Connectors → Fathom** → paste the key → **Connect Fathom**.
+3. Chief sets up the webhook automatically. If it can't, the page shows 5 short steps to add it in
+   Fathom by hand and a box to paste Fathom's webhook secret.
+
 ## Settings file (`.env.local`)
 
 Chief keeps private settings in a file called `.env.local` that is never uploaded to GitHub.

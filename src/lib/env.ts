@@ -8,7 +8,6 @@ export function env(name: string): string {
       `Missing setting ${name}. Add it to .env.local (locally) or Netlify environment variables.`,
     );
   }
-  // eslint-disable-next-line no-control-regex
   if (/[^\x00-\x7F]/.test(value)) {
     throw new Error(
       `Setting ${name} contains hidden or masked characters (like •). Copy the value again from its source and paste it in full.`,
