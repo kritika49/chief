@@ -1,10 +1,12 @@
 [build]
   command = "npm run build"
   publish = ".next"
-  # Save free-plan credits: only build when a commit message contains [deploy],
-  # or on the very first build / a manual "Trigger deploy" retry.
+  # Credits: production deploys cost 15 credits; branch deploys and previews are free.
+  # - Test site (branch deploy / preview): always build (free).
+  # - Live site from `main`: always build (main only changes on "release").
+  # - Live site from any other branch (old setup): only with [deploy] in the commit message.
   # (Exit 0 = skip this build, exit 1 = build.)
-  ignore = "if git log -1 --pretty=%B | grep -q '\\[deploy\\]'; then exit 1; elif [ -z \"$CACHED_COMMIT_REF\" ] || [ \"$CACHED_COMMIT_REF\" = \"$COMMIT_REF\" ]; then exit 1; else exit 0; fi"
+  ignore = "if [ \"$CONTEXT\" != \"production\" ] || [ \"$BRANCH\" = \"main\" ]; then exit 1; elif git log -1 --pretty=%B | grep -q '\\[deploy\\]'; then exit 1; elif [ -z \"$CACHED_COMMIT_REF\" ] || [ \"$CACHED_COMMIT_REF\" = \"$COMMIT_REF\" ]; then exit 1; else exit 0; fi"
 
 [build.environment]
   NODE_VERSION = "22"

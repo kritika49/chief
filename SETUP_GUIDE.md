@@ -148,6 +148,25 @@ After install, Slack shows "run your app locally" CLI steps — ignore them.
 
 Each PM then opens **Connectors → Slack**: Chief finds their Slack account by email automatically.
 
+## Part I — Save Netlify credits: live site from `main`, free test site ⏳
+
+Netlify free plan: 300 credits/month; each **live** (production) deploy costs 15; test (branch) deploys are free.
+
+1. Netlify → **chief-pm** → **Project configuration** → **Build & deploy** → **Continuous deployment** →
+   **Branches and deploy contexts** → **Configure**:
+   - **Production branch**: `main`
+   - **Branch deploys**: **Let me add individual branches** → add `claude/youthful-ptolemy-d5k800`
+   - **Save**.
+2. Test site address: `https://claude-youthful-ptolemy-d5k800--chief-pm.netlify.app`
+3. Google Cloud → Google Auth Platform → Clients → Chief → **Authorized redirect URIs** → add
+   `https://claude-youthful-ptolemy-d5k800--chief-pm.netlify.app/api/connect/google/callback` → Save.
+4. Supabase → Authentication → URL Configuration → Redirect URLs → add
+   `https://claude-youthful-ptolemy-d5k800--chief-pm.netlify.app/**` → Save.
+5. Secret environment variables have one box per deploy context — make sure the **Branch deploys** box is
+   filled too (same value as Production).
+
+New features land on the test site first (free). The live site updates only when the PM says "release".
+
 ## Part H — Fathom (each PM) ⏳
 
 1. In Fathom: profile picture → **Settings** → **API Access** → **Generate API key** → copy.
