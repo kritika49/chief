@@ -111,7 +111,7 @@ To save free-plan credits, Netlify only rebuilds when Claude marks a change with
    **Add a variable** → key `APP_URL`, value `https://chief-pm.netlify.app` → **Create variable**.
 3. Open <https://chief-pm.netlify.app> → **Sign in with Google** → pick your work account.
 
-## Part F — Google Calendar + Gmail drafts (company, once) ⏳
+## Part F — Google Calendar + Gmail drafts (company, once) ✅
 
 Reuses the Google Cloud project and client from Part C.
 
