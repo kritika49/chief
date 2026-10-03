@@ -14,7 +14,7 @@ import { createWebhook, deleteWebhook, testApiKey, meetingTitle, type FathomCred
 
 function errorMessage(e: unknown, fallback: string) {
   if (!(e instanceof Error) || !e.message || e.message === "fetch failed") return fallback;
-  return e.message;
+  return serverKeyHint(e);
 }
 
 // ---------------------------------------------------------------------------
@@ -198,15 +198,21 @@ export async function saveFathomKey(_: ActionResult, formData: FormData): Promis
     // Fall back to manual setup in Fathom's settings.
   }
 
-  await saveConnection(user.id, "fathom", {
-    status: auto ? "connected" : "needs_attention",
-    account_label: `API key ending ${key.slice(-4)}`,
-    credentials: creds,
-    webhook_id: webhookId,
-    settings: { ...existing?.settings, webhook_mode: auto ? "auto" : "manual" },
-    last_sync_at: new Date().toISOString(),
-    last_error: auto ? null : "Add the webhook in Fathom (steps below) to finish.",
-  });
+  try {
+    await saveConnection(user.id, "fathom", {
+      status: auto ? "connected" : "needs_attention",
+      account_label: `API key ending ${key.slice(-4)}`,
+      credentials: creds,
+      webhook_id: webhookId,
+      settings: { ...existing?.settings, webhook_mode: auto ? "auto" : "manual" },
+      last_sync_at: new Date().toISOString(),
+      last_error: auto ? null : "Add the webhook in Fathom (steps below) to finish.",
+    });
+  } catch (e) {
+    // Don't leave a webhook in Fathom that Chief has no record of.
+    if (creds.fathom_webhook_id) await deleteWebhook(key, creds.fathom_webhook_id);
+    return { ok: false, message: `Your key works, but Chief couldn't save it: ${serverKeyHint(e)}` };
+  }
   revalidatePath("/connectors", "layout");
   const latest = latestTitle ? ` Latest meeting: “${latestTitle}”.` : "";
   return auto
@@ -220,20 +226,20 @@ export async function saveFathomSecret(_: ActionResult, formData: FormData): Pro
   if (!/^whsec_[A-Za-z0-9+/=]+$/.test(secret)) {
     return { ok: false, message: "The webhook secret should start with whsec_. Copy it again from Fathom." };
   }
-  const creds = await getCredentials<FathomCredentials>(user.id, "fathom");
+  const creds = await getCredentials<FathomCredentials>(user.id, "fathom").catch(() => null);
   if (!creds) return { ok: false, message: "Add your Fathom API key first." };
-  await saveConnection(user.id, "fathom", {
-    status: "connected",
-    credentials: { ...creds, webhook_secret: secret },
-    last_error: null,
-  });
+  try {
+    await saveConnection(user.id, "fathom", { status: "connected", credentials: { ...creds, webhook_secret: secret }, last_error: null });
+  } catch (e) {
+    return { ok: false, message: `Couldn't save: ${serverKeyHint(e)}` };
+  }
   revalidatePath("/connectors", "layout");
   return { ok: true, message: "Saved. New meetings will now arrive automatically." };
 }
 
 export async function testFathom(): Promise<ActionResult> {
   const user = await requireUser();
-  const creds = await getCredentials<FathomCredentials>(user.id, "fathom");
+  const creds = await getCredentials<FathomCredentials>(user.id, "fathom").catch(() => null);
   if (!creds) return { ok: false, message: "Add your Fathom API key first." };
   try {
     const r = await testApiKey(creds.api_key);
@@ -245,7 +251,7 @@ export async function testFathom(): Promise<ActionResult> {
     };
   } catch (e) {
     const msg = errorMessage(e, "Couldn't reach Fathom.");
-    await markNeedsAttention(user.id, "fathom", msg);
+    await markNeedsAttention(user.id, "fathom", msg).catch(() => {});
     revalidatePath("/connectors", "layout");
     return { ok: false, message: msg };
   }
