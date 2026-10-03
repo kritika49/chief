@@ -73,7 +73,9 @@ Workspace can use it, and Google doesn't need to review the app.
    - Site URL: `http://localhost:3000` (already the default; changed to the Netlify address in Phase 2)
    - Redirect URLs → **Add URL**: `http://localhost:3000/**` → **Save**
 
-## Part D — Put Chief online with Netlify ⏳
+## Part D — Put Chief online with Netlify ✅
+
+Done. Live at <https://chief-pm.netlify.app> (Netlify project `chief-pm`).
 
 Netlify hosts Chief so you get a web address (and so Slack/Fathom can reach it later).
 
@@ -82,17 +84,29 @@ Netlify hosts Chief so you get a web address (and so Slack/Fathom can reach it l
    and allow it to see the `chief` repository.
 3. Pick **chief**. On the settings screen:
    - **Branch to deploy**: `claude/youthful-ptolemy-d5k800`
-   - **Project name**: e.g. `chief-byldd` (your address becomes `https://chief-byldd.netlify.app`)
+   - **Project name**: e.g. `chief-pm` (your address becomes `https://chief-pm.netlify.app`)
    - Leave build settings as they are (they come from the repository).
 4. Click **Add environment variables** → **Import from a .env file**, and paste the block of
    settings Claude gives you in chat (Supabase URL + anon key, the two generated secrets,
    allowed domain and admin email). Never put these in GitHub.
 5. Add one more variable by hand: key `SUPABASE_SERVICE_ROLE_KEY`, value copied from
-   Supabase → **Project Settings → API Keys** → **Secret key** (or Legacy → **service_role**, click Reveal).
+   Supabase → **Project Settings → API Keys** → **Legacy API keys** → **service_role** → Reveal → Copy.
+   (Add it under **Add another** on the import screen, or later in **Project configuration →
+   Environment variables → Add a variable**.)
    Mark it **secret** if Netlify offers the option.
 6. Click **Deploy**. The first build takes 2–4 minutes.
 
 To save free-plan credits, Netlify only rebuilds when Claude marks a change with `[deploy]`.
+
+## Part E — Point sign-in at the live address ⏳
+
+1. Supabase → **Authentication** → **URL Configuration**:
+   - Site URL: `https://chief-pm.netlify.app` → **Save**
+   - Redirect URLs → **Add URL**: `https://chief-pm.netlify.app/**` → **Save**
+     (keep the localhost one too)
+2. Netlify → project **chief-pm** → **Project configuration** → **Environment variables** →
+   **Add a variable** → key `APP_URL`, value `https://chief-pm.netlify.app` → **Create variable**.
+3. Open <https://chief-pm.netlify.app> → **Sign in with Google** → pick your work account.
 
 ## Settings file (`.env.local`)
 
