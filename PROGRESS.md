@@ -25,7 +25,7 @@ What works:
 Checked: typecheck, lint, production build, database script + security tests, screenshots on
 desktop/mobile in light and dark mode.
 
-## Phase 2 — Deploy to Netlify ✅ (waiting on first sign-in test)
+## Phase 2 — Deploy to Netlify ✅ (sign-in tested live on 3 Oct)
 - Live at https://chief-pm.netlify.app (Netlify project `chief-pm`, deploys branch `claude/youthful-ptolemy-d5k800`).
 - Supabase, Google sign-in and all environment variables set up (SETUP_GUIDE.md Parts A–E).
 - To save free credits, Netlify only rebuilds when a commit message contains `[deploy]`.
