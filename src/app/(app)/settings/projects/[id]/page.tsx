@@ -78,7 +78,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
                 <div className="space-y-1.5">
                   <Label htmlFor="type">Type</Label>
                   <Select id="type" name="type" defaultValue={p.type}>
-                    <option value="dev">Development</option>
+                    <option value="dev">Dev + PM</option>
                     <option value="design_pm">Design + PM</option>
                   </Select>
                 </div>

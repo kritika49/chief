@@ -33,7 +33,7 @@ export const TRACKING_LABEL: Record<TrackingMode, string> = {
   manual_entry: "I type their update",
   none: "Don't track",
 };
-export const TYPE_LABEL: Record<ProjectType, string> = { dev: "Development", design_pm: "Design + PM" };
+export const TYPE_LABEL: Record<ProjectType, string> = { dev: "Dev + PM", design_pm: "Design + PM" };
 
 /** Header fields per project type, in display order. */
 export const HEADER_FIELDS: Record<ProjectType, { key: keyof ProjectHeader; label: string; kind: "text" | "date" }[]> = {

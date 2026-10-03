@@ -23,15 +23,15 @@ export default function NewProjectPage() {
               <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
                 <input type="radio" name="type" value="dev" defaultChecked className="mt-1" />
                 <span>
-                  <b>Development</b>
-                  <span className="block text-muted-foreground">Has developers. Chief reads their EODs from Slack and nudges if missing.</span>
+                  <b>Dev + PM</b>
+                  <span className="block text-muted-foreground">Has developers. The update combines their Slack EODs with your own PM work (done to-dos, client-call notes).</span>
                 </span>
               </label>
               <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
                 <input type="radio" name="type" value="design_pm" className="mt-1" />
                 <span>
                   <b>Design + PM</b>
-                  <span className="block text-muted-foreground">No developers — you&apos;re also the designer. Updates come from your to-dos and client calls.</span>
+                  <span className="block text-muted-foreground">No developers — you&apos;re also the designer. Updates come from your to-dos and client calls; no Slack EODs.</span>
                 </span>
               </label>
             </fieldset>
