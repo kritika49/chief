@@ -29,7 +29,7 @@ Supabase stores Chief's data and handles "Sign in with Google". Free plan is eno
 These go into `.env.local` lines `SUPABASE_URL` and `SUPABASE_ANON_KEY`
 (and later into Netlify's environment variables).
 
-## Part B — Create Chief's database tables ⏳
+## Part B — Create Chief's database tables ✅
 
 1. Open this file on GitHub:
    `supabase/migrations/0001_init.sql` (in the `chief` repository, branch `claude/youthful-ptolemy-d5k800`):
@@ -37,7 +37,9 @@ These go into `.env.local` lines `SUPABASE_URL` and `SUPABASE_ANON_KEY`
 2. Click the **Copy raw file** button (two overlapping squares, top-right of the file).
 3. In Supabase, click **SQL Editor** in the left sidebar → **New query**.
 4. Paste, then click **Run** (bottom-right).
-5. You should see **Success. No rows returned**. (If it says something already exists, the tables
+5. If Supabase shows "Potential issue detected … without enabling Row Level Security", click
+   **Run and enable RLS** (safe — the file already turns it on; the checker just doesn't spot it).
+6. You should see **Success. No rows returned**. (If it says something already exists, the tables
    were created before — that's fine.)
 
 ## Part C — Turn on "Sign in with Google" ⏳
