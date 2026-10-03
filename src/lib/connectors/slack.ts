@@ -195,3 +195,23 @@ export function permalink(workspaceUrl: string, channelId: string, ts: string, t
   const base = `${workspaceUrl.replace(/\/$/, "")}/archives/${channelId}/p${ts.replace(".", "")}`;
   return threadTs && threadTs !== ts ? `${base}?thread_ts=${threadTs}&cid=${channelId}` : base;
 }
+
+/** Checks one channel: does it exist, is Chief in it, and can Chief read it? */
+export async function checkChannel(channelId: string): Promise<{ name: string | null; isPrivate: boolean; member: boolean; readable: boolean; problem: string | null }> {
+  try {
+    const info = await call("conversations.info", { channel: channelId }, z.object({ channel: channel }));
+    const ch = info.channel;
+    if (!ch.is_member) return { name: ch.name, isPrivate: !!ch.is_private, member: false, readable: false, problem: null };
+    try {
+      await call("conversations.history", { channel: channelId, limit: 1 }, z.object({}).passthrough());
+      return { name: ch.name, isPrivate: !!ch.is_private, member: true, readable: true, problem: null };
+    } catch (e) {
+      return { name: ch.name, isPrivate: !!ch.is_private, member: true, readable: false, problem: e instanceof Error ? e.message : "Can't read messages." };
+    }
+  } catch (e) {
+    const code = e instanceof SlackError ? e.code : "";
+    // Private channels Chief isn't in look "not found" to it.
+    if (code === "channel_not_found") return { name: null, isPrivate: true, member: false, readable: false, problem: null };
+    return { name: null, isPrivate: false, member: false, readable: false, problem: e instanceof Error ? e.message : "Couldn't check." };
+  }
+}

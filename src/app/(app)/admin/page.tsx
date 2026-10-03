@@ -12,7 +12,6 @@ export const metadata = { title: "Admin · Chief" };
 
 export default async function AdminPage() {
   await requireAdmin();
-  const admin = createAdminClient();
 
   let slack: { ok: true; team: string; bot: string } | { ok: false; error: string };
   if (!slackConfigured()) slack = { ok: false, error: "SLACK_BOT_TOKEN isn't set in Netlify." };
@@ -25,10 +24,21 @@ export default async function AdminPage() {
     }
   }
 
-  const [{ data: profiles }, { data: conns }] = await Promise.all([
-    admin.from("profiles").select("id, email, full_name, slack_user_id, created_at").order("created_at"),
-    admin.from("connections").select("user_id, provider, status"),
-  ]);
+  let serverKey: { ok: true } | { ok: false; error: string } = { ok: true };
+  let admin: ReturnType<typeof createAdminClient> | null = null;
+  try {
+    admin = createAdminClient();
+    const { error } = await admin.from("profiles").select("id", { head: true, count: "exact" });
+    if (error) serverKey = { ok: false, error: error.message };
+  } catch (e) {
+    serverKey = { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+
+  const ready = serverKey.ok && admin;
+  const [{ data: profiles }, { data: conns }] = ready ? await Promise.all([
+    admin!.from("profiles").select("id, email, full_name, slack_user_id, created_at").order("created_at"),
+    admin!.from("connections").select("user_id, provider, status"),
+  ]) : [{ data: [] as { id: string; email: string; full_name: string | null; slack_user_id: string | null; created_at: string }[] }, { data: [] as { user_id: string; provider: string; status: string }[] }];
   const statusOf = (userId: string, provider: string): Status =>
     (conns?.find((c) => c.user_id === userId && c.provider === provider)?.status as Status) ?? "not_connected";
 
@@ -51,6 +61,14 @@ export default async function AdminPage() {
                 </span>
               ) : (
                 <ResultLine ok={false} message={slack.error} />
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-28 text-muted-foreground">Server key</span>
+              {serverKey.ok ? (
+                <Badge variant="success">Working</Badge>
+              ) : (
+                <ResultLine ok={false} message={`SUPABASE_SERVICE_ROLE_KEY problem (${serverKey.error}). Copy the service_role key again from Supabase → Project Settings → API Keys → Legacy, paste it into every box in Netlify, then redeploy.`} />
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">

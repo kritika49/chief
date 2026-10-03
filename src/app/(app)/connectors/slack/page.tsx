@@ -10,6 +10,7 @@ import { myConnections, myTimezone } from "@/lib/connectors/status";
 import { saveConnection } from "@/lib/connectors/store";
 import {
   authTest,
+  checkChannel,
   displayName,
   listChannels,
   listUsers,
@@ -40,6 +41,7 @@ export default async function SlackPage() {
 
   const { data: profile } = await supabase.from("profiles").select("slack_user_id, slack_user_name").eq("id", user.id).maybeSingle();
   let linkedId = profile?.slack_user_id ?? null;
+  let saveProblem: string | null = null;
   let linkedName = profile?.slack_user_name ?? null;
 
   // First visit: match the user's Slack account by email automatically.
@@ -56,12 +58,27 @@ export default async function SlackPage() {
           settings: { slack_user_id: linkedId },
           last_sync_at: new Date().toISOString(),
           last_error: null,
+        }).catch((e) => {
+          saveProblem = e instanceof Error ? e.message : String(e);
         });
       }
     } catch {
       // Show the manual picker instead.
     }
   }
+
+  // Each project channel, checked directly (private channels don't show in the general list).
+  const { data: projectChannels } = await supabase
+    .from("channels")
+    .select("slack_channel_id, slack_channel_name, project:projects(name, active)")
+    .eq("active", true);
+  const checks = bot
+    ? await Promise.all(
+        ((projectChannels ?? []) as unknown as { slack_channel_id: string; slack_channel_name: string | null; project: { name: string; active: boolean } | null }[])
+          .filter((c) => c.project?.active)
+          .map(async (c) => ({ ...c, check: await checkChannel(c.slack_channel_id) })),
+      )
+    : [];
 
   let users: SlackUser[] = [];
   let channels: SlackChannel[] = [];
@@ -75,7 +92,6 @@ export default async function SlackPage() {
   const c = conns.slack;
   const status = appError ? "needs_attention" : linkedId ? (c?.status ?? "connected") : "not_connected";
   const memberChannels = channels.filter((ch) => ch.is_member);
-  const otherChannels = channels.filter((ch) => !ch.is_member);
 
   return (
     <>
@@ -109,6 +125,7 @@ export default async function SlackPage() {
             issue={c?.last_error}
             timezone={tz}
           >
+            {saveProblem && <ResultLine ok={false} message={`Chief couldn't save your Slack link: ${saveProblem}. Check SUPABASE_SERVICE_ROLE_KEY in Netlify.`} />}
             {linkedId ? (
               <div className="flex flex-wrap items-start gap-3">
                 <ActionForm action={testSlack} label="Test (send me a DM)" pendingLabel="Sending…" variant="outline" />
@@ -153,8 +170,32 @@ export default async function SlackPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 text-sm">
-              <ChannelList title={`Chief is in (${memberChannels.length})`} channels={memberChannels} member />
-              <ChannelList title={`Not invited yet (${otherChannels.length})`} channels={otherChannels} />
+              <div>
+                <div className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Your project channels</div>
+                {checks.length === 0 ? (
+                  <p className="text-muted-foreground">No project channels yet. Add them in Settings → Projects.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {checks.map((c) => (
+                      <li key={c.slack_channel_id} className="flex flex-wrap items-center gap-2">
+                        {c.check.isPrivate ? <Lock className="size-3.5 text-muted-foreground" /> : <Hash className="size-3.5 text-muted-foreground" />}
+                        <span className="font-medium">{c.check.name ?? c.slack_channel_name ?? c.slack_channel_id}</span>
+                        <span className="text-xs text-muted-foreground">{c.project?.name}</span>
+                        {c.check.readable ? (
+                          <Badge variant="success">Chief can read it</Badge>
+                        ) : c.check.member ? (
+                          <Badge variant="warning">Chief is in, but can&apos;t read: {c.check.problem}</Badge>
+                        ) : c.check.problem ? (
+                          <Badge variant="warning">{c.check.problem}</Badge>
+                        ) : (
+                          <Badge variant="outline">Not invited — type /invite @{bot.name} in it</Badge>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <ChannelList title={`Other channels Chief is in (${memberChannels.filter((ch) => !checks.some((c) => c.slack_channel_id === ch.id)).length})`} channels={memberChannels.filter((ch) => !checks.some((c) => c.slack_channel_id === ch.id))} member />
             </CardContent>
           </Card>
         )}

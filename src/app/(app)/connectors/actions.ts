@@ -69,21 +69,42 @@ export async function pickSlackUser(_: ActionResult, formData: FormData): Promis
 
 export async function testSlack(): Promise<ActionResult> {
   const user = await requireUser();
-  const conn = await getConnection(user.id, "slack");
-  const slackUserId = conn?.settings?.slack_user_id as string | undefined;
+  const supabase = await createClient();
+  const { data: profile } = await supabase.from("profiles").select("slack_user_id, slack_user_name").eq("id", user.id).maybeSingle();
+  const conn = await getConnection(user.id, "slack").catch(() => null);
+  const slackUserId = (conn?.settings?.slack_user_id as string | undefined) ?? profile?.slack_user_id ?? undefined;
   if (!slackUserId) return { ok: false, message: "Link your Slack account first." };
   try {
     await sendDm(slackUserId, "Chief here 👋 just testing our connection. All good — you'll get your draft-ready notes here.");
-    await markSynced(user.id, "slack");
-    revalidatePath("/connectors", "layout");
-    return { ok: true, message: "Sent! Check your Slack direct messages from Chief." };
   } catch (e) {
     const msg = errorMessage(e, "Couldn't reach Slack.");
     if (e instanceof SlackError && ["invalid_auth", "account_inactive"].includes(e.code)) {
-      await markNeedsAttention(user.id, "slack", msg);
+      await markNeedsAttention(user.id, "slack", msg).catch(() => {});
     }
     return { ok: false, message: msg };
   }
+  try {
+    await saveConnection(user.id, "slack", {
+      status: "connected",
+      account_label: profile?.slack_user_name ?? conn?.account_label ?? null,
+      settings: { ...conn?.settings, slack_user_id: slackUserId },
+      last_sync_at: new Date().toISOString(),
+      last_error: null,
+    });
+  } catch (e) {
+    return { ok: false, message: `The DM was sent, but Chief couldn't save the connection: ${serverKeyHint(e)}` };
+  }
+  revalidatePath("/connectors", "layout");
+  return { ok: true, message: "Sent! Check your Slack direct messages from Chief." };
+}
+
+/** Plain-language hint when the Supabase secret (service role) key is wrong. */
+function serverKeyHint(e: unknown): string {
+  const m = e instanceof Error ? e.message : String(e);
+  if (/SUPABASE_SERVICE_ROLE_KEY|Invalid API key|JWS|JWT|signature/i.test(m)) {
+    return "the SUPABASE_SERVICE_ROLE_KEY setting in Netlify looks wrong. Copy the service_role key again from Supabase (Project Settings → API Keys → Legacy) and paste it in every box, then redeploy.";
+  }
+  return m;
 }
 
 export async function unlinkSlack(): Promise<ActionResult> {
