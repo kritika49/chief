@@ -129,7 +129,10 @@ Reuses the Google Cloud project and client from Part C.
 
 Each PM then clicks **Connectors → Google → Connect Google** and ticks both boxes.
 
-## Part G — Slack app (company, once) ⏳
+## Part G — Slack app (company, once) ✅
+
+Done. Note: Slack's free plan allows 10 apps; Byldd was full, so an unused app (Mixpanel) was removed first.
+After install, Slack shows "run your app locally" CLI steps — ignore them.
 
 1. Go to <https://api.slack.com/apps> → **Create New App** → **From a manifest**.
 2. Pick your company workspace → **Next**.
@@ -137,7 +140,8 @@ Each PM then clicks **Connectors → Google → Connect Google** and ticks both 
    `slack-app-manifest.yml` from the repository → **Next** → **Create**.
 4. Left menu **Install App** → **Install to <workspace>** → **Allow**.
    (If it says it needs approval, a Slack admin approves it.)
-5. Copy the **Bot User OAuth Token** (starts with `xoxb-`) → Netlify variable `SLACK_BOT_TOKEN`.
+5. Left menu **OAuth & Permissions** → copy the **Bot User OAuth Token** (starts with `xoxb-`) → Netlify variable
+   `SLACK_BOT_TOKEN` (tick **Contains secret values**; paste the same value in each deploy-context box).
 6. Left menu **Basic Information** → **App Credentials** → **Signing Secret** → **Show** → copy →
    Netlify variable `SLACK_SIGNING_SECRET`.
 7. In each project channel in Slack, type `/invite @Chief`.

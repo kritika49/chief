@@ -65,7 +65,17 @@ Google keys (Part F), then Fathom (Part H).
 - Tested end to end against a local copy of the database: starter data → draft → paste EOD → typed
   update → preview → copy (matches exactly) → reload (saved) → mark posted → History.
 
+## Phase 7 — Slack EOD reading ✅ (code done; goes live with the next rebuild)
+- Starting a draft reads each development project's active channels since the last posted update
+  (max 4 days back; 48 hours if nothing posted yet), including EODs posted inside threads.
+- Messages with the channel's EOD keyword from Slack-tracked team members become "Name:" bullets with
+  a link back to the Slack message; raw messages and parsed bullets are saved; blocker words flagged.
+- **Refresh from Slack** fills in late EODs for anyone still awaited (a pasted EOD always wins).
+- Someone not on the team posts an EOD → **Add to roster?** prompt; one click adds them and their EOD.
+- **Approve & Post** sends the update to your target channel (#product_management).
+- Tested end to end with a fake Slack loaded with messages shaped like the real channels.
+
 ## Next
-- Slack app install + Google keys + Fathom (SETUP_GUIDE Parts F–H).
+- Google keys (Part F), then Fathom (Part H).
 - Then: automatic Slack EOD reading (Phase 7), to-dos (Phase 6), meeting rules + new-project wizard
   (rest of Phase 4), scheduler (Phase 9).

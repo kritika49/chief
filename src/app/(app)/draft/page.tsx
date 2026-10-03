@@ -11,8 +11,8 @@ import { todayIn } from "@/lib/dates";
 import { formatDMon } from "@/lib/draft/format";
 import type { DraftBullet } from "@/lib/draft/assemble";
 import type { Project, TrackingMode } from "@/lib/types";
-import { createDraft } from "./actions";
-import { DraftEditor, type EditorProject } from "./draft-editor";
+import { createDraft, type ScanMeta } from "./actions";
+import { DraftEditor, SlackBar, type EditorProject } from "./draft-editor";
 
 export const metadata = { title: "Draft · Chief" };
 
@@ -22,7 +22,7 @@ export default async function DraftPage() {
   const user = await requireUser();
   const supabase = await createClient();
   const [{ data: draft }, { data: prefs }, { count: projectCount }] = await Promise.all([
-    supabase.from("drafts").select("id, for_date, manual_entries").eq("status", "draft").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("drafts").select("id, for_date, manual_entries, updated_at").eq("status", "draft").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("preferences").select("timezone, target_channel_ids").eq("user_id", user.id).maybeSingle(),
     supabase.from("projects").select("id", { count: "exact", head: true }).eq("active", true),
   ]);
@@ -70,7 +70,7 @@ export default async function DraftPage() {
     supabase.from("project_members").select("project_id, tracking_mode, person:people(id, name)"),
     supabase.from("channels").select("project_id, eod_keyword, is_primary").eq("active", true),
   ]);
-  const entries = (draft.manual_entries ?? {}) as Record<string, Record<string, string>>;
+  const { _scan: scanMeta, ...entries } = (draft.manual_entries ?? {}) as Record<string, Record<string, string>> & { _scan?: ScanMeta };
   const memberRows = (members ?? []) as unknown as MemberJoin[];
 
   const editorProjects: EditorProject[] = ((projects ?? []) as Project[]).map((p) => ({
@@ -88,7 +88,11 @@ export default async function DraftPage() {
   return (
     <>
       <PageHeader title="Draft & Post" description={`Update for ${formatDMon(draft.for_date)}. Edit anything — nothing is posted until you say so.`} />
+      {slackConfigured() && (
+        <SlackBar draftId={draft.id} scan={scanMeta ?? { at: "", unknown: [], errors: [] }} projectNames={Object.fromEntries(editorProjects.map((p) => [p.id, p.name]))} />
+      )}
       <DraftEditor
+        key={draft.updated_at}
         draftId={draft.id}
         today={todayIn(prefs?.timezone)}
         projects={editorProjects}

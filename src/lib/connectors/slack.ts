@@ -42,7 +42,7 @@ async function call<T extends z.ZodTypeAny>(
   const clean = Object.fromEntries(
     Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]),
   );
-  const url = `https://slack.com/api/${method}`;
+  const url = `${process.env.SLACK_API_BASE ?? "https://slack.com/api"}/${method}`;
   const res = post
     ? await fetch(url, {
         method: "POST",
@@ -144,4 +144,54 @@ export async function postMessage(channelId: string, text: string) {
 export async function sendDm(slackUserId: string, text: string) {
   const open = await call("conversations.open", { users: slackUserId }, z.object({ channel: z.object({ id: z.string() }) }), { post: true });
   return postMessage(open.channel.id, text);
+}
+
+const historyMessage = z.object({
+  ts: z.string(),
+  user: z.string().optional(),
+  text: z.string().default(""),
+  subtype: z.string().optional(),
+  thread_ts: z.string().optional(),
+  reply_count: z.number().optional(),
+  latest_reply: z.string().optional(),
+}).passthrough();
+export type SlackMessage = z.infer<typeof historyMessage>;
+
+const paged = (key: string) =>
+  z.object({ [key]: z.array(historyMessage).default([]), has_more: z.boolean().optional(), response_metadata: z.object({ next_cursor: z.string().optional() }).optional() });
+
+/** Channel messages newer than `oldest` (Slack ts), newest first. Max ~600. */
+export async function channelHistory(channelId: string, oldest: string): Promise<SlackMessage[]> {
+  const out: SlackMessage[] = [];
+  let cursor: string | undefined;
+  for (let i = 0; i < 3; i++) {
+    const r = (await call("conversations.history", { channel: channelId, oldest, limit: 200, cursor }, paged("messages"))) as unknown as {
+      messages: SlackMessage[];
+      response_metadata?: { next_cursor?: string };
+    };
+    out.push(...r.messages);
+    cursor = r.response_metadata?.next_cursor || undefined;
+    if (!cursor) break;
+  }
+  return out;
+}
+
+/** Replies in a thread newer than `oldest` (excludes the parent). */
+export async function threadReplies(channelId: string, threadTs: string, oldest: string): Promise<SlackMessage[]> {
+  const r = (await call("conversations.replies", { channel: channelId, ts: threadTs, oldest, limit: 200 }, paged("messages"))) as unknown as { messages: SlackMessage[] };
+  return r.messages.filter((m) => m.ts !== threadTs);
+}
+
+export async function userInfo(slackUserId: string): Promise<SlackUser | null> {
+  try {
+    return (await call("users.info", { user: slackUserId }, z.object({ user: slackUser }))).user;
+  } catch {
+    return null;
+  }
+}
+
+/** Builds a message link without an extra API call. */
+export function permalink(workspaceUrl: string, channelId: string, ts: string, threadTs?: string) {
+  const base = `${workspaceUrl.replace(/\/$/, "")}/archives/${channelId}/p${ts.replace(".", "")}`;
+  return threadTs && threadTs !== ts ? `${base}?thread_ts=${threadTs}&cid=${channelId}` : base;
 }

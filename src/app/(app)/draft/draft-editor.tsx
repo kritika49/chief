@@ -14,7 +14,9 @@ import { isDue } from "@/lib/dates";
 import { formatDMon, renderUpdate, type DraftProject } from "@/lib/draft/format";
 import type { BulletSource, DraftBullet } from "@/lib/draft/assemble";
 import { HEADER_FIELDS, type ProjectHeader, type ProjectType, type TrackingMode } from "@/lib/types";
-import { discardDraft, markPosted, pinBullet, postToSlack, saveHeaderField, saveMemberText, saveProjectBullets } from "./actions";
+import { addToRoster, discardDraft, markPosted, pinBullet, postToSlack, refreshFromSlack, saveHeaderField, saveMemberText, saveProjectBullets, type ScanMeta } from "./actions";
+import { useRouter } from "next/navigation";
+import { RefreshCw, UserPlus } from "lucide-react";
 
 export type EditorMember = { personId: string; name: string; tracking: TrackingMode; text: string };
 export type EditorProject = {
@@ -81,6 +83,47 @@ export function DraftEditor({ draftId, today, projects: initial, canPost }: { dr
       </div>
       <PreviewPanel draftId={draftId} text={text} canPost={canPost} />
     </div>
+  );
+}
+
+export function SlackBar({ draftId, scan, projectNames }: { draftId: string; scan: ScanMeta; projectNames: Record<string, string> }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const run = (fn: () => Promise<{ ok: boolean; message: string }>) =>
+    start(async () => {
+      const r = await fn();
+      setResult(r);
+      router.refresh();
+    });
+  const time = scan.at ? new Date(scan.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
+
+  return (
+    <Card className="mb-6 gap-3 py-4">
+      <CardContent className="space-y-3 px-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="flex items-center gap-2 text-muted-foreground">
+            <MessageSquare className="size-4" />
+            {time ? `EODs read from Slack at ${time}.` : "EODs are read from your project channels."}
+          </span>
+          <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => run(() => refreshFromSlack(draftId))}>
+            {pending ? <Loader2 className="animate-spin" /> : <RefreshCw />} Refresh from Slack
+          </Button>
+        </div>
+        {scan.errors.map((e) => <ResultLine key={e} ok={false} message={e} />)}
+        {scan.unknown.map((u) => (
+          <div key={u.slackUserId + u.projectId} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/60 p-2 text-sm">
+            <span>
+              <b>{u.name}</b> posted an EOD in #{u.channelName} but isn&apos;t on {projectNames[u.projectId] ?? "this project"}&apos;s team.
+            </span>
+            <Button type="button" size="sm" variant="secondary" disabled={pending} onClick={() => run(() => addToRoster(draftId, u.projectId, u.slackUserId, u.name))}>
+              <UserPlus /> Add to roster
+            </Button>
+          </div>
+        ))}
+        {result && <ResultLine ok={result.ok} message={result.message} />}
+      </CardContent>
+    </Card>
   );
 }
 
