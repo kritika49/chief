@@ -55,8 +55,9 @@ export default async function SignInPage({
             </form>
           ) : (
             <p className="rounded-md bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
-              Chief isn&apos;t connected to its database yet. Add the Supabase settings to
-              <code className="mx-1">.env.local</code> (see SETUP_GUIDE.md), then restart.
+              Chief isn&apos;t connected to its database yet. The Supabase settings are missing: add
+              them in Netlify (Project configuration → Environment variables) or in
+              <code className="mx-1">.env.local</code>, then redeploy. See SETUP_GUIDE.md.
             </p>
           )}
           <p className="text-center text-xs text-muted-foreground">
