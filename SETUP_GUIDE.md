@@ -95,6 +95,9 @@ Netlify hosts Chief so you get a web address (and so Slack/Fathom can reach it l
    Environment variables → Add a variable**.)
    Mark it **secret** if Netlify offers the option.
 6. Click **Deploy**. The first build takes 2–4 minutes.
+7. Check **Project configuration → Environment variables** lists all 8 names. If a value was copied while
+   hidden behind dots (•), edit it and paste again using Supabase's **Copy** button. Secret values on the
+   free plan have one box per deploy context — paste the same value in each (Production matters most).
 
 To save free-plan credits, Netlify only rebuilds when Claude marks a change with `[deploy]`.
 
