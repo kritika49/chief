@@ -1,6 +1,6 @@
 # Chief — Progress
 
-## Phase 1 — Project setup, sign-in, app shell ✅ (code done; waiting on Supabase + Google setup to sign in)
+## Phase 1 — Project setup, sign-in, app shell ✅
 
 What works:
 - App skeleton (Next.js + TypeScript + Tailwind + shadcn-style components, lucide icons).
@@ -25,6 +25,10 @@ What works:
 Checked: typecheck, lint, production build, database script + security tests, screenshots on
 desktop/mobile in light and dark mode.
 
+## Phase 2 — Deploy to Netlify ✅ (waiting on first sign-in test)
+- Live at https://chief-pm.netlify.app (Netlify project `chief-pm`, deploys branch `claude/youthful-ptolemy-d5k800`).
+- Supabase, Google sign-in and all environment variables set up (SETUP_GUIDE.md Parts A–E).
+- To save free credits, Netlify only rebuilds when a commit message contains `[deploy]`.
+
 ## Next
-- Phase 1 sign-in test: needs Supabase project + Google sign-in set up (SETUP_GUIDE.md, Part A–C).
-- Phase 2: deploy to Netlify so you can open Chief in your browser and so webhooks have a public address.
+- Phase 3: connectors — Slack (manifest + linking), Google Calendar + Gmail, Fathom (key + webhook).
