@@ -40,6 +40,14 @@ const SOURCE_LABEL: Record<BulletSource, string> = {
   free_text: "Added",
 };
 
+// Pending (debounced) bullet saves, so other actions can save edits first.
+const pendingSaves = new Map<string, () => Promise<void>>();
+export async function flushDraftSaves() {
+  const saves = [...pendingSaves.values()];
+  pendingSaves.clear();
+  await Promise.all(saves.map((save) => save()));
+}
+
 export const reminderText = (name: string) => `Hi ${name}, Chief here 👋 friendly reminder to drop your EOD when you get a moment.`;
 
 export function DraftEditor({ draftId, today, projects: initial, canPost }: { draftId: string; today: string; projects: EditorProject[]; canPost: boolean }) {
@@ -53,13 +61,17 @@ export function DraftEditor({ draftId, today, projects: initial, canPost }: { dr
     latest.current = next;
     setProjects(next);
     if (!persist) return;
-    const proj = next.find((p) => p.id === id)!;
     clearTimeout(timers.current[id]);
     setSaving((s) => ({ ...s, [id]: true }));
-    timers.current[id] = setTimeout(async () => {
-      await saveProjectBullets(draftId, id, proj.bullets);
+    const save = async () => {
+      clearTimeout(timers.current[id]);
+      pendingSaves.delete(id);
+      const proj = latest.current.find((p) => p.id === id);
+      if (proj) await saveProjectBullets(draftId, id, proj.bullets);
       setSaving((s) => ({ ...s, [id]: false }));
-    }, 700);
+    };
+    pendingSaves.set(id, save);
+    timers.current[id] = setTimeout(save, 700);
   };
 
   const text = useMemo(
@@ -92,6 +104,7 @@ export function SlackBar({ draftId, scan, projectNames }: { draftId: string; sca
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const run = (fn: () => Promise<{ ok: boolean; message: string }>) =>
     start(async () => {
+      await flushDraftSaves();
       const r = await fn();
       setResult(r);
       router.refresh();
@@ -284,6 +297,7 @@ function MemberBox({ draftId, project, member, onBullets }: { draftId: string; p
               onClick={() =>
                 start(async () => {
                   setError(null);
+                  await flushDraftSaves();
                   const r = await saveMemberText(draftId, project.id, member.personId, text, project.keyword, project.bullets);
                   if (!r.ok) setError(r.message);
                   else {
@@ -355,7 +369,10 @@ function PreviewPanel({ draftId, text, canPost }: { draftId: string; text: strin
                 disabled={pending}
                 onClick={() => {
                   if (!window.confirm("Post this update to Slack now?")) return;
-                  start(async () => setResult(await postToSlack(draftId, text)));
+                  start(async () => {
+                    await flushDraftSaves();
+                    setResult(await postToSlack(draftId, text));
+                  });
                 }}
               >
                 {pending ? <Loader2 className="animate-spin" /> : <Send />} Approve &amp; Post
@@ -367,7 +384,10 @@ function PreviewPanel({ draftId, text, canPost }: { draftId: string; text: strin
               disabled={pending}
               onClick={() => {
                 if (!window.confirm("Did you post this update in Slack? Chief will save it to your history and close this draft.")) return;
-                start(async () => setResult(await markPosted(draftId, text)));
+                start(async () => {
+                  await flushDraftSaves();
+                  setResult(await markPosted(draftId, text));
+                });
               }}
             >
               I posted it myself
