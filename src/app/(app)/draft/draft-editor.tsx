@@ -14,7 +14,8 @@ import { isDue } from "@/lib/dates";
 import { formatDMon, renderUpdate, type DraftProject } from "@/lib/draft/format";
 import type { BulletSource, DraftBullet } from "@/lib/draft/assemble";
 import { HEADER_FIELDS, type ProjectHeader, type ProjectType, type TrackingMode } from "@/lib/types";
-import { addToRoster, discardDraft, markPosted, pinBullet, postToSlack, refreshFromSlack, saveHeaderField, saveMemberText, saveProjectBullets, type ScanMeta } from "./actions";
+import { addToRoster, discardDraft, markPosted, pinBullet, postToSlack, refreshFromSlack, saveHeaderField, saveMemberText, saveProjectBullets } from "./actions";
+import type { ScanMeta } from "@/lib/draft/build";
 import { useRouter } from "next/navigation";
 import { RefreshCw, UserPlus } from "lucide-react";
 

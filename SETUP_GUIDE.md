@@ -178,6 +178,15 @@ New features land on the test site first (free). The live site updates only when
 3. Chief sets up the webhook automatically. If it can't, the page shows 5 short steps to add it in
    Fathom by hand and a box to paste Fathom's webhook secret.
 
+## Part J — Daily use setup (each PM, in Chief) ⏳
+
+1. **Settings → Projects → each project → Meeting rules**: tell Chief how to recognise meetings, e.g.
+   Client call when an attendee is `@clientdomain.com`; Standup when the title contains `standup`.
+2. **Settings → Preferences**: check timezone, working days, morning draft time, EOD cutoff, evening
+   reminders and notifications.
+3. Nothing else: the scheduler runs automatically on the live site every 10 minutes (it uses `CRON_SECRET`,
+   already set).
+
 ## Tip — secret values in Netlify
 
 Netlify hides secret values behind dots (•). Never copy a value *from* Netlify into another box — you'd

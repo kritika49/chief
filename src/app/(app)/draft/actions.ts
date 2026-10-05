@@ -4,13 +4,14 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { todayIn } from "@/lib/dates";
-import { memberBullets, replaceMemberBullets, ruleBasedAssembler, type DraftBullet } from "@/lib/draft/assemble";
+import { appUrl } from "@/lib/env";
+import { memberBullets, replaceMemberBullets, type DraftBullet } from "@/lib/draft/assemble";
+import { createDraftFor, finishPosting as finish, projectMembers as members, replaceProjectBullets as replaceBullets, saveScanMeta as saveMeta } from "@/lib/draft/build";
 import { postAsName, postMessage, slackConfigured } from "@/lib/connectors/slack";
 import { scanProjectEods, windowStart, type UnknownAuthor } from "@/lib/eod/scan";
-import type { EodInput } from "@/lib/draft/assemble";
+import { runMatching } from "@/lib/matching/run";
 import { logHeaderChanges } from "@/lib/header-history";
-import type { ProjectHeader, TrackingMode } from "@/lib/types";
+import type { ProjectHeader } from "@/lib/types";
 
 type Result = { ok: boolean; message: string };
 
@@ -21,68 +22,23 @@ const bulletSchema = z.object({
   source_url: z.string().nullish(),
 });
 
-type MemberJoin = { tracking_mode: TrackingMode; person: { id: string; name: string } };
-
 async function projectMembers(projectId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("project_members").select("tracking_mode, person:people(id, name)").eq("project_id", projectId);
-  return ((data ?? []) as unknown as MemberJoin[]).map((m) => ({ personId: m.person.id, name: m.person.name, tracking: m.tracking_mode }));
+  const user = await requireUser();
+  return members(await createClient(), user.id, projectId);
 }
 
 async function replaceProjectBullets(draftId: string, projectId: string, bullets: DraftBullet[]) {
-  const supabase = await createClient();
-  await supabase.from("draft_bullets").delete().eq("draft_id", draftId).eq("project_id", projectId);
-  if (bullets.length) {
-    await supabase.from("draft_bullets").insert(
-      bullets.map((b, i) => ({ draft_id: draftId, project_id: projectId, text: b.text, position: i, source: b.source, source_ref: b.source_ref ?? null, source_url: b.source_url ?? null })),
-    );
-  }
+  const user = await requireUser();
+  return replaceBullets(await createClient(), user.id, draftId, projectId, bullets);
 }
 
 /** Creates today's draft for all active projects (or returns the open one). */
 export async function createDraft(): Promise<Result> {
   const user = await requireUser();
-  const supabase = await createClient();
-  const { data: open } = await supabase.from("drafts").select("id").eq("status", "draft").maybeSingle();
-  if (open) return { ok: true, message: "Your draft is ready." };
-
-  const { data: prefs } = await supabase.from("preferences").select("timezone, blocker_keywords").eq("user_id", user.id).maybeSingle();
-  const { data: lastPost } = await supabase.from("posted_updates").select("posted_at").order("posted_at", { ascending: false }).limit(1).maybeSingle();
-  const { data: projects } = await supabase.from("projects").select("id, type, header").eq("active", true).order("sort_order");
-  if (!projects?.length) return { ok: false, message: "Add a project first (Settings → Projects)." };
-
-  const { data: draft, error } = await supabase
-    .from("drafts")
-    .insert({ for_date: todayIn(prefs?.timezone), since: lastPost?.posted_at ?? null, header_snapshot: Object.fromEntries(projects.map((p) => [p.id, p.header])) })
-    .select("id")
-    .single();
-  if (error || !draft) return { ok: false, message: "Couldn't start the draft. Please try again." };
-
-  const unknown: UnknownAuthor[] = [];
-  const errors: string[] = [];
-  const oldest = windowStart(lastPost?.posted_at, Date.now(), prefs?.timezone);
-  for (const p of projects) {
-    let eods: Record<string, EodInput[]> = {};
-    if (p.type === "dev" && slackConfigured()) {
-      const r = await scanProjectEods(supabase, user.id, p.id, oldest, prefs?.blocker_keywords ?? undefined).catch((e) => ({
-        eods: {}, unknown: [], errors: [e instanceof Error ? e.message : "Couldn't read Slack."],
-      }));
-      eods = r.eods;
-      unknown.push(...r.unknown);
-      errors.push(...r.errors);
-    }
-    const [members, { data: pinned }] = await Promise.all([
-      projectMembers(p.id),
-      supabase.from("pinned_lines").select("id, text").eq("project_id", p.id).eq("active", true).order("created_at"),
-    ]);
-    // Slack EODs (Phase 7) and to-dos / call notes (later phases) plug in here.
-    const bullets = ruleBasedAssembler.assemble({ members, eods, manualEntries: {}, doneTodos: [], callPoints: [], standupLines: [], pinned: pinned ?? [] });
-    await replaceProjectBullets(draft.id, p.id, bullets);
-  }
-  if (slackConfigured()) await saveScanMeta(draft.id, unknown, errors);
+  const r = await createDraftFor(await createClient(), user.id, appUrl());
   revalidatePath("/draft");
   revalidatePath("/today");
-  return { ok: true, message: errors.length ? `Draft started, but some channels couldn't be read: ${errors.join("; ")}` : "Draft started." };
+  return { ok: r.ok, message: r.message };
 }
 
 /** Saves a pasted EOD (slack_scan member) or typed update (manual_entry member). */
@@ -138,12 +94,12 @@ export async function saveHeaderField(projectId: string, field: keyof ProjectHea
 }
 
 async function finishPosting(draftId: string, text: string, channelIds: string[], ts: Record<string, string>) {
-  const supabase = await createClient();
-  await supabase.from("posted_updates").insert({ draft_id: draftId, text, slack_channel_ids: channelIds, slack_ts: ts });
-  await supabase.from("drafts").update({ status: "posted" }).eq("id", draftId);
+  const user = await requireUser();
+  await finish(await createClient(), user.id, draftId, text, channelIds, ts);
   revalidatePath("/draft");
   revalidatePath("/history");
   revalidatePath("/today");
+  revalidatePath("/todos");
 }
 
 /** For when the PM copied the text and posted it in Slack themselves. */
@@ -185,13 +141,9 @@ export async function discardDraft(draftId: string): Promise<Result> {
 
 // ---- Slack scan bookkeeping ------------------------------------------------
 
-export type ScanMeta = { at: string; unknown: UnknownAuthor[]; errors: string[] };
-
 async function saveScanMeta(draftId: string, unknown: UnknownAuthor[], errors: string[]) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("drafts").select("manual_entries").eq("id", draftId).single();
-  const entries = { ...(data?.manual_entries ?? {}), _scan: { at: new Date().toISOString(), unknown, errors } satisfies ScanMeta };
-  await supabase.from("drafts").update({ manual_entries: entries }).eq("id", draftId);
+  const user = await requireUser();
+  await saveMeta(await createClient(), user.id, draftId, unknown, errors);
 }
 
 /** Re-reads Slack and fills in EODs for anyone still awaited (pasted text is kept). */
@@ -202,7 +154,7 @@ export async function refreshFromSlack(draftId: string): Promise<Result> {
   const { data: draft } = await supabase.from("drafts").select("id, manual_entries").eq("id", draftId).eq("status", "draft").maybeSingle();
   if (!draft) return { ok: false, message: "This draft is no longer open." };
   const [{ data: prefs }, { data: lastPost }, { data: projects }] = await Promise.all([
-    supabase.from("preferences").select("blocker_keywords, timezone").eq("user_id", user.id).maybeSingle(),
+    supabase.from("preferences").select("blocker_keywords, timezone, match_high_threshold, match_medium_threshold").eq("user_id", user.id).maybeSingle(),
     supabase.from("posted_updates").select("posted_at").order("posted_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("projects").select("id, type").eq("active", true).eq("type", "dev"),
   ]);
@@ -232,6 +184,7 @@ export async function refreshFromSlack(draftId: string): Promise<Result> {
     if (changed) await replaceProjectBullets(draftId, p.id, bullets);
   }
   await saveScanMeta(draftId, unknown, errors);
+  await runMatching(supabase, user.id, prefs ?? undefined).catch(() => {});
   await supabase.from("drafts").update({ updated_at: new Date().toISOString() }).eq("id", draftId);
   revalidatePath("/draft");
   if (errors.length) return { ok: false, message: `Some channels couldn't be read: ${errors.join("; ")}` };

@@ -44,7 +44,7 @@ const tokenResponse = z.object({
 });
 
 export async function exchangeCode(origin: string, code: string) {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await fetch(`${process.env.GOOGLE_OAUTH_BASE ?? "https://oauth2.googleapis.com"}/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -80,7 +80,7 @@ export class GoogleAuthError extends Error {}
 export async function getAccessToken(userId: string): Promise<string> {
   const creds = await getCredentials<GoogleCredentials>(userId, "google");
   if (!creds?.refresh_token) throw new GoogleAuthError("Google isn't connected.");
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await fetch(`${process.env.GOOGLE_OAUTH_BASE ?? "https://oauth2.googleapis.com"}/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -123,7 +123,7 @@ const calendarListSchema = z.object({
 export type GoogleCalendar = z.infer<typeof calendarListSchema>["items"][number];
 
 export async function listCalendars(userId: string): Promise<GoogleCalendar[]> {
-  const r = await googleGet(userId, "https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=250", calendarListSchema);
+  const r = await googleGet(userId, `${process.env.GOOGLE_CALENDAR_BASE ?? "https://www.googleapis.com"}/calendar/v3/users/me/calendarList?maxResults=250`, calendarListSchema);
   return r.items.sort((a, b) => Number(b.primary ?? false) - Number(a.primary ?? false) || a.summary.localeCompare(b.summary));
 }
 
@@ -148,7 +148,7 @@ export async function listEvents(userId: string, calendarId: string, timeMin: Da
   });
   const r = await googleGet(
     userId,
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+    `${process.env.GOOGLE_CALENDAR_BASE ?? "https://www.googleapis.com"}/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
     z.object({ items: z.array(eventSchema).default([]) }),
   );
   return r.items.filter((e) => e.status !== "cancelled");
@@ -160,7 +160,74 @@ export async function testGoogle(userId: string) {
   const now = new Date();
   const dayEnd = new Date(now.getTime() + 24 * 3600 * 1000);
   const events = await listEvents(userId, "primary", now, dayEnd);
-  const gmail = await googleGet(userId, "https://gmail.googleapis.com/gmail/v1/users/me/profile", z.object({ emailAddress: z.string() }));
+  const gmail = await googleGet(userId, `${process.env.GOOGLE_API_BASE ?? "https://gmail.googleapis.com"}/gmail/v1/users/me/profile`, z.object({ emailAddress: z.string() }));
   await markSynced(userId, "google");
   return { calendars: calendars.length, upcomingEvents: events.length, gmail: gmail.emailAddress };
+}
+
+/** Finds the calendar event for a recorded meeting (same start ± 20 min, title preferred). */
+export async function findCalendarEvent(userId: string, startIso: string, title: string | null): Promise<CalendarEvent | null> {
+  const start = new Date(startIso).getTime();
+  const events = await listEvents(userId, "primary", new Date(start - 20 * 60000), new Date(start + 20 * 60000));
+  if (!events.length) return null;
+  const t = (title ?? "").toLowerCase();
+  return events.find((e) => (e.summary ?? "").toLowerCase() === t) ?? events.find((e) => t && (e.summary ?? "").toLowerCase().includes(t.slice(0, 12))) ?? events[0];
+}
+
+/** Next occurrence of a recurring event (or same-titled event) within 45 days. */
+export async function findNextCall(userId: string, after: Date, recurringEventId: string | null, title: string | null): Promise<CalendarEvent | null> {
+  const events = await listEvents(userId, "primary", new Date(after.getTime() + 60 * 60000), new Date(after.getTime() + 45 * 86400000));
+  return (
+    events.find((e) => recurringEventId && e.recurringEventId === recurringEventId) ??
+    events.find((e) => title && (e.summary ?? "").toLowerCase() === title.toLowerCase()) ??
+    null
+  );
+}
+
+function encodeHeader(s: string) {
+  return /[^\x20-\x7e]/.test(s) ? `=?UTF-8?B?${Buffer.from(s, "utf8").toString("base64")}?=` : s;
+}
+
+/** Creates (or replaces) a Gmail draft. Chief never sends email. */
+export async function saveGmailDraft(
+  userId: string,
+  mail: { to: string[]; cc: string[]; subject: string; text: string; html: string },
+  existingDraftId?: string | null,
+): Promise<{ id: string; messageId: string }> {
+  const boundary = `chief_${Date.now().toString(36)}`;
+  const mime = [
+    mail.to.length ? `To: ${mail.to.join(", ")}` : null,
+    mail.cc.length ? `Cc: ${mail.cc.join(", ")}` : null,
+    `Subject: ${encodeHeader(mail.subject)}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from(mail.text, "utf8").toString("base64"),
+    `--${boundary}`,
+    "Content-Type: text/html; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from(mail.html, "utf8").toString("base64"),
+    `--${boundary}--`,
+  ]
+    .filter((l) => l !== null)
+    .join("\r\n");
+  const raw = Buffer.from(mime, "utf8").toString("base64url");
+  const token = await getAccessToken(userId);
+  const base = `${process.env.GOOGLE_API_BASE ?? "https://gmail.googleapis.com"}/gmail/v1/users/me/drafts`;
+  const send = (url: string, method: string) =>
+    fetch(url, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ message: { raw } }), cache: "no-store" });
+  let res = existingDraftId ? await send(`${base}/${existingDraftId}`, "PUT") : await send(base, "POST");
+  if (existingDraftId && res.status === 404) res = await send(base, "POST"); // the PM deleted it in Gmail
+  const json = (await readJson(res, "Gmail")) as { id?: string; message?: { id?: string }; error?: { message?: string } };
+  if (!res.ok || !json.id) {
+    const reason = json.error?.message ?? res.statusText;
+    if (res.status === 403 && /has not been used|is disabled/i.test(reason)) throw new Error("The Gmail API isn't switched on in Google Cloud yet (see SETUP_GUIDE.md).");
+    throw new Error(`Gmail said: ${reason}`);
+  }
+  return { id: json.id, messageId: json.message?.id ?? "" };
 }

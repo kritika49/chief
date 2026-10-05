@@ -11,7 +11,8 @@ import { todayIn } from "@/lib/dates";
 import { formatDMon } from "@/lib/draft/format";
 import type { DraftBullet } from "@/lib/draft/assemble";
 import type { Project, TrackingMode } from "@/lib/types";
-import { createDraft, type ScanMeta } from "./actions";
+import { createDraft } from "./actions";
+import type { ScanMeta } from "@/lib/draft/build";
 import { DraftEditor, SlackBar, type EditorProject } from "./draft-editor";
 
 export const metadata = { title: "Draft · Chief" };

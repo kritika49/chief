@@ -23,6 +23,14 @@ function tzOffsetMinutes(at: Date, timezone: string): number {
   return Math.round((asUtc - at.getTime()) / 60000);
 }
 
+/** Midnight at the start of today, in the PM's timezone (epoch ms). */
+export function localDayStart(now: number, timezone = "UTC"): number {
+  const offset = tzOffsetMinutes(new Date(now), timezone) * 60000;
+  const local = new Date(now + offset);
+  const day = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate());
+  return day - tzOffsetMinutes(new Date(day - offset), timezone) * 60000;
+}
+
 /** Midnight at the start of the previous working day (Mon → Fri), in the PM's timezone. */
 export function previousWorkingDayStart(now: number, timezone = "UTC", workingDays: number[] = [1, 2, 3, 4, 5]): number {
   const offset = tzOffsetMinutes(new Date(now), timezone) * 60000;

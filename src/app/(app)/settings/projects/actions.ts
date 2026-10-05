@@ -204,3 +204,50 @@ export async function removePinned(_: ActionResult, formData: FormData): Promise
   await supabase.from("pinned_lines").update({ active: false }).eq("id", id);
   return done(projectId, "Unpinned.");
 }
+
+// ---- Meeting rules, schedule overrides, project options ----------------------
+
+export async function addRule(_: ActionResult, formData: FormData): Promise<ActionResult> {
+  await requireUser();
+  const projectId = z.string().uuid().parse(formData.get("project_id"));
+  const parsed = z
+    .object({
+      meeting_type: z.enum(["client_call", "standup", "ignore"]),
+      match_kind: z.enum(["title_keyword", "attendee_domain", "recurring_event_id"]),
+      match_value: z.string().trim().min(1, "Type what to match."),
+    })
+    .safeParse({ meeting_type: formData.get("meeting_type"), match_kind: formData.get("match_kind"), match_value: formData.get("match_value") });
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0].message };
+  const value = parsed.data.match_kind === "recurring_event_id" ? parsed.data.match_value : parsed.data.match_value.toLowerCase().replace(/^@/, "");
+  const supabase = await createClient();
+  await supabase.from("call_rules").insert({ project_id: projectId, ...parsed.data, match_value: value });
+  return done(projectId, "Rule added.");
+}
+
+export async function removeRule(_: ActionResult, formData: FormData): Promise<ActionResult> {
+  await requireUser();
+  const projectId = z.string().uuid().parse(formData.get("project_id"));
+  const supabase = await createClient();
+  await supabase.from("call_rules").delete().eq("id", z.string().uuid().parse(formData.get("id")));
+  return done(projectId, "Rule removed.");
+}
+
+export async function saveProjectOptions(_: ActionResult, formData: FormData): Promise<ActionResult> {
+  await requireUser();
+  const projectId = z.string().uuid().parse(formData.get("project_id"));
+  const cc = String(formData.get("email_cc") ?? "").split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean);
+  if (cc.some((e) => !z.string().email().safeParse(e).success)) return { ok: false, message: "One of the CC emails doesn't look right." };
+  const supabase = await createClient();
+  await supabase.from("projects").update({ auto_post_standup: formData.get("auto_post_standup") === "on", email_cc: cc }).eq("id", projectId);
+
+  const days = formData.getAll("working_days").map(Number).filter((d) => d >= 1 && d <= 7);
+  const cutoff = String(formData.get("eod_cutoff_time") ?? "");
+  const override = {
+    project_id: projectId,
+    working_days: formData.get("override_days") === "on" ? days : null,
+    eod_cutoff_time: /^\d{2}:\d{2}$/.test(cutoff) ? cutoff : null,
+    nudges_enabled: formData.get("nudges_enabled") === "on",
+  };
+  await supabase.from("schedule_overrides").upsert(override, { onConflict: "project_id" });
+  return done(projectId);
+}

@@ -79,6 +79,42 @@ Google keys (Part F), then Fathom (Part H).
 - Live site `chief-pm.netlify.app` builds from `main` only — updated when the PM says "release" (15 credits).
 - Test site `claude-youthful-ptolemy-d5k800--chief-pm.netlify.app` builds free on every save.
 
+## Release 2 (5 Oct) — all screens complete ✅
+- **To-dos**: per project Later / Today / Done; tick → Done (feeds the next update as plain bullets, archived
+  after posting); move between lists; edit; blocker flag; client-call/standup source tags.
+- **Meetings**: list with filters (Needs review, Client calls, Standups, Unassigned); Fathom calls are matched
+  to the calendar and sorted by **meeting rules** (title keyword, attendee domain, recurring event);
+  unassigned queue with "save as rule"; typed notes for unrecorded calls; transcript view.
+- **Client-call review**: tick summary lines for the update, tag Decisions, route action items to To-do
+  (tagged with call date) / Follow-up / both / dismiss, owners prefilled from People + aliases.
+- **Minutes**: copy as text, **Gmail draft** (To = external attendees, CC = project list, subject
+  "Meeting Minutes — Project — D Mon", next call date from the calendar), auto-created after review,
+  re-create replaces it, "Open in Gmail"; optional post to a Slack channel after confirming.
+- **Standup review**: tasks with owner, due date, destination; unmatched owners flagged; **one Slack message**
+  per standup in the project's primary channel with @mentions; optional per-project auto-post (default off).
+- **Task ↔ EOD matching**: auto-match (with Undo), suggested (Confirm / Not a match — never re-suggested),
+  stale flag after N working days. Never changes the daily update.
+- **Tracker**: Follow-ups (overdue highlighted, status, promised vs delivered per call) and Standup tasks.
+- **Decision log**: search by project, dates, keyword; link to the call; manual entry.
+- **Pre-call brief**: page + Slack DM before each client call (last call, updates since, open follow-ups,
+  open client to-dos, headers, blockers).
+- **Scheduler** (every 10 minutes, live site only): morning draft + "draft ready" DM; missing-EOD nudges at
+  the cutoff (Dev + PM projects, per-project overrides); evening to-do reminders; pre-call briefs; follow-up
+  due reminders; hourly EOD scan for task matching. Every job runs once (idempotent).
+- **Today** dashboard: draft status, missing EODs, dates reached, today's meetings, meetings to review,
+  unassigned meetings, overdue follow-ups, stale tasks, suggested matches.
+- **Preferences**: schedules, working days, evening reminders, pre-call lead, notifications, email wording,
+  auto Gmail draft, blocker words, matching thresholds. **Account**: disconnect all, delete my data.
+- **Project settings**: meeting rules, auto-post standups, minutes CC, schedule overrides.
+- Daily updates post as "<PM>'s Chief"; EOD bullets as sentences ("Shlok worked on …").
+- Tested: 51 unit tests; 92 end-to-end checks against a stand-in database, fake Slack, fake Google and
+  signed Fathom deliveries.
+
+## Not built / differences from the spec
+- New-project "wizard" is a single page with skippable sections (create → fill sections).
+- Projects and to-dos move with arrows/buttons rather than drag-and-drop.
+- "Delete my data" could not be tested locally (needs the real Supabase sign-in service).
+
 ## Release 1 (5 Oct) ✅
 - Live: Slack, Google and Fathom connected; automatic EOD reading; Draft & Post; History.
 - Header dates shown as "12 Oct 2026" (the PM's format).
@@ -87,6 +123,6 @@ Google keys (Part F), then Fathom (Part H).
 - Fixed: a just-added bullet could be lost if Refresh / Add to roster was clicked within a second.
 
 ## Next
-- To-dos (Phase 6) so PM items flow into the update automatically.
+- Polish from real use. Optional: one-bullet-per-person mode, long-dash divider, post as the PM's own Slack account.
 - Then: automatic Slack EOD reading (Phase 7), to-dos (Phase 6), meeting rules + new-project wizard
   (rest of Phase 4), scheduler (Phase 9).

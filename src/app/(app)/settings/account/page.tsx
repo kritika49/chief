@@ -5,6 +5,9 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ActionForm } from "@/components/action-form";
+import { deleteMyData, disconnectAll } from "./actions";
 
 export const metadata = { title: "Account · Chief" };
 
@@ -34,6 +37,28 @@ export default async function AccountPage() {
               <LogOut /> Sign out
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Disconnect all</CardTitle>
+          <CardDescription>Removes Chief&apos;s access to your Google account and Fathom, and unlinks your Slack account. Your projects and history stay.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ActionForm action={disconnectAll} label="Disconnect all" variant="outline" confirm="Disconnect Google, Slack and Fathom?" />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-destructive">Delete my data</CardTitle>
+          <CardDescription>Permanently deletes your Chief account: projects, people, to-dos, meetings, drafts and update history. This can&apos;t be undone. Messages already posted in Slack and Gmail drafts stay where they are.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ActionForm action={deleteMyData} label="Delete everything" variant="destructive" confirm="Permanently delete your Chief account and all its data?">
+            <Input name="confirm" placeholder="Type DELETE to confirm" className="max-w-xs" autoComplete="off" />
+          </ActionForm>
         </CardContent>
       </Card>
     </>

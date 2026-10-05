@@ -11,6 +11,7 @@ import {
   type FathomCredentials,
 } from "@/lib/connectors/fathom";
 import type { ConnectionRow } from "@/lib/connectors/store";
+import { ingestMeeting } from "@/lib/meetings/ingest";
 
 /** Fathom calls this when a meeting's notes are ready (`new-meeting-content-ready`). */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ webhookId: string }> }) {
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const title = meetingTitle(m);
   const startedAt = m.recording_start_time ?? m.scheduled_start_time ?? m.created_at ?? new Date().toISOString();
-  const { error } = await admin.from("meetings").upsert(
+  const { data: saved, error } = await admin.from("meetings").upsert(
     {
       user_id: conn.user_id,
       fathom_id: m.recording_id,
@@ -74,8 +75,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       raw: json,
     },
     { onConflict: "user_id,fathom_id" },
-  );
-  if (error) return NextResponse.json({ error: "Couldn't save meeting" }, { status: 500 });
+  ).select("id").single();
+  if (error || !saved) return NextResponse.json({ error: "Couldn't save meeting" }, { status: 500 });
+  await ingestMeeting(admin, conn.user_id, saved.id).catch((e) => console.error("Fathom ingest failed", e));
 
   await admin
     .from("connections")

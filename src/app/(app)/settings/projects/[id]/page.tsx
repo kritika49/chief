@@ -13,7 +13,7 @@ import { Select } from "@/components/ui/select";
 import { ActionForm, ResultLine } from "@/components/action-form";
 import { listChannels, slackConfigured, type SlackChannel } from "@/lib/connectors/slack";
 import { HEADER_FIELDS, ROLE_LABEL, TRACKING_LABEL, TYPE_LABEL, type Person, type Project, type TrackingMode } from "@/lib/types";
-import { addChannel, addMember, addPinned, removePinned, saveGeneral, setArchived, updateChannel, updateMember } from "../actions";
+import { addChannel, addMember, addPinned, addRule, removePinned, removeRule, saveGeneral, saveProjectOptions, setArchived, updateChannel, updateMember } from "../actions";
 
 export const metadata = { title: "Project · Chief" };
 
@@ -29,11 +29,14 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
   if (!project) notFound();
   const p = project as Project;
 
-  const [{ data: channels }, { data: members }, { data: people }, { data: pinned }] = await Promise.all([
+  const [{ data: channels }, { data: members }, { data: people }, { data: pinned }, { data: rules }, { data: override }, { data: extra }] = await Promise.all([
     supabase.from("channels").select("id, slack_channel_id, slack_channel_name, eod_keyword, active, is_primary").eq("project_id", id).order("created_at"),
     supabase.from("project_members").select("id, tracking_mode, nudge, person:people(id, name, role, email, slack_user_id)").eq("project_id", id).order("created_at"),
     supabase.from("people").select("id, name, role, email, slack_user_id").order("name"),
     supabase.from("pinned_lines").select("id, text").eq("project_id", id).eq("active", true).order("created_at"),
+    supabase.from("call_rules").select("id, meeting_type, match_kind, match_value").eq("project_id", id).order("created_at"),
+    supabase.from("schedule_overrides").select("working_days, eod_cutoff_time, nudges_enabled").eq("project_id", id).maybeSingle(),
+    supabase.from("projects").select("auto_post_standup, email_cc").eq("id", id).single(),
   ]);
   const memberRows = (members ?? []) as unknown as MemberRow[];
   const onProject = new Set(memberRows.map((m) => m.person.id));
@@ -214,6 +217,85 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
                   </Select>
                 </div>
               </div>
+            </ActionForm>
+          </CardContent>
+        </Card>
+
+        {/* Meeting rules */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Meeting rules</CardTitle>
+            <CardDescription>How Chief recognises this project&apos;s meetings from Fathom and your calendar. Unmatched meetings go to Meetings → Unassigned.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(rules ?? []).map((r) => (
+              <div key={r.id} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                <span className="flex-1">
+                  <b>{r.meeting_type === "client_call" ? "Client call" : r.meeting_type === "standup" ? "Standup" : "Ignore"}</b> when{" "}
+                  {r.match_kind === "title_keyword" ? "the title contains" : r.match_kind === "attendee_domain" ? "an attendee is @" : "it's the recurring event"} “{r.match_value}”
+                </span>
+                <form action={async (fd) => { "use server"; await removeRule(null, fd); }}>
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="project_id" value={p.id} />
+                  <Button type="submit" variant="ghost" size="icon" className="size-7" aria-label="Remove rule"><X /></Button>
+                </form>
+              </div>
+            ))}
+            <ActionForm action={addRule} label="Add rule" variant="secondary" className="rounded-lg border border-dashed p-3">
+              <input type="hidden" name="project_id" value={p.id} />
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Select name="meeting_type" defaultValue="client_call" aria-label="Meeting type">
+                  <option value="client_call">Client call</option>
+                  <option value="standup">Standup</option>
+                  <option value="ignore">Ignore</option>
+                </Select>
+                <Select name="match_kind" defaultValue="title_keyword" aria-label="Match by">
+                  <option value="title_keyword">Title contains</option>
+                  <option value="attendee_domain">Attendee email domain</option>
+                  <option value="recurring_event_id">Recurring calendar event ID</option>
+                </Select>
+                <Input name="match_value" placeholder="e.g. bles weekly / client.com" aria-label="Value" />
+              </div>
+            </ActionForm>
+          </CardContent>
+        </Card>
+
+        {/* Options & schedule overrides */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Options &amp; schedule</CardTitle>
+            <CardDescription>Standup posting, minutes email CC, and when reminders run for this project.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ActionForm action={saveProjectOptions} label="Save" pendingLabel="Saving…">
+              <input type="hidden" name="project_id" value={p.id} />
+              <label className="flex items-start gap-3 text-sm">
+                <input type="checkbox" name="auto_post_standup" defaultChecked={extra?.auto_post_standup ?? false} className="mt-0.5" />
+                <span><b>Auto-post standup tasks</b> without review<span className="block text-xs text-muted-foreground">Off by default — you review and click Post.</span></span>
+              </label>
+              <div className="space-y-1.5">
+                <Label htmlFor="email_cc">Always CC on minutes</Label>
+                <Input id="email_cc" name="email_cc" defaultValue={(extra?.email_cc ?? []).join(", ")} placeholder="e.g. lead@byldd.com" />
+              </div>
+              {p.type === "dev" && (
+                <>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input type="checkbox" name="nudges_enabled" defaultChecked={override?.nudges_enabled ?? true} /> Send missing-EOD reminders for this project
+                  </label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="eod_cutoff_time">EOD cutoff for this project (optional)</Label>
+                    <Input id="eod_cutoff_time" name="eod_cutoff_time" type="time" defaultValue={override?.eod_cutoff_time?.slice(0, 5) ?? ""} className="w-36" />
+                  </div>
+                </>
+              )}
+              <fieldset className="space-y-2 text-sm">
+                <label className="flex items-center gap-3"><input type="checkbox" name="override_days" defaultChecked={!!override?.working_days} /> Different working days for this project</label>
+                <div className="flex flex-wrap gap-3 pl-6">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => (
+                    <label key={d} className="flex items-center gap-1.5"><input type="checkbox" name="working_days" value={i + 1} defaultChecked={(override?.working_days ?? [1, 2, 3, 4, 5]).includes(i + 1)} /> {d}</label>
+                  ))}
+                </div>
+              </fieldset>
             </ActionForm>
           </CardContent>
         </Card>
