@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { todayIn } from "@/lib/dates";
+import { toPastTense } from "@/lib/draft/sentence";
 import { ruleBasedAssembler, type DraftBullet, type EodInput, type MemberInput } from "@/lib/draft/assemble";
 import { slackConfigured } from "@/lib/connectors/slack";
 import { scanProjectEods, windowStart, type UnknownAuthor } from "@/lib/eod/scan";
@@ -43,7 +44,7 @@ export async function projectSources(db: SupabaseClient, userId: string, project
   const typeOf = new Map((meetings ?? []).map((m) => [m.id, m.type]));
   const link = (meetingId: string) => `${appUrl}/meetings/${meetingId}`;
   return {
-    doneTodos: (todos ?? []).map((t) => ({ id: t.id, text: t.text })),
+    doneTodos: (todos ?? []).map((t) => ({ id: t.id, text: toPastTense(t.text) })),
     callPoints: (items ?? []).filter((i) => typeOf.get(i.meeting_id) === "client_call").map((i) => ({ id: i.id, text: i.text, url: link(i.meeting_id) })),
     standupLines: (items ?? []).filter((i) => typeOf.get(i.meeting_id) === "standup").map((i) => ({ id: i.id, text: i.text, url: link(i.meeting_id) })),
     pinned: pinned ?? [],

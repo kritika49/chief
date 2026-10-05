@@ -58,7 +58,7 @@ export function TodoBoard({ projectId, initial }: { projectId: string; initial: 
           });
         }}
       >
-        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Write it as an update, e.g. Updated the prototype with Tanay's image assets" className="flex-1" />
+        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. Share revised timeline with Patrick" className="flex-1" />
         <div className="flex gap-2">
           <select value={to} onChange={(e) => setTo(e.target.value as "today" | "later")} className="h-9 rounded-md border border-input bg-background px-2 text-sm" aria-label="Add to">
             <option value="today">Today</option>

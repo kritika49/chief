@@ -11,6 +11,17 @@ const PAST: Record<string, string> = {
   prepare: "prepared", raise: "raised", refactor: "refactored", remove: "removed", research: "researched", resolve: "resolved",
   review: "reviewed", rewrite: "rewrote", set: "set", setup: "set up", share: "shared", start: "started", support: "supported",
   sync: "synced", test: "tested", update: "updated", upgrade: "upgraded", verify: "verified", work: "worked", write: "wrote",
+  align: "aligned", analyse: "analysed", analyze: "analyzed", approve: "approved", arrange: "arranged", ask: "asked", assign: "assigned",
+  book: "booked", brief: "briefed", call: "called", catch: "caught", chase: "chased", clarify: "clarified", close: "closed", collect: "collected",
+  communicate: "communicated", compile: "compiled", confirm: "confirmed", coordinate: "coordinated", deliver: "delivered", demo: "demoed",
+  document: "documented", draft: "drafted", email: "emailed", escalate: "escalated", finalise: "finalised", finalize: "finalized",
+  gather: "gathered", get: "got", give: "gave", hand: "handed", host: "hosted", inform: "informed", introduce: "introduced", invite: "invited",
+  launch: "launched", lead: "led", meet: "met", message: "messaged", nudge: "nudged", onboard: "onboarded", organise: "organised",
+  organize: "organized", outline: "outlined", ping: "pinged", post: "posted", present: "presented", prioritise: "prioritised",
+  prioritize: "prioritized", publish: "published", push: "pushed", put: "put", reach: "reached", read: "read", record: "recorded",
+  release: "released", remind: "reminded", reply: "replied", reschedule: "rescheduled", respond: "responded", run: "ran",
+  schedule: "scheduled", see: "saw", send: "sent", sign: "signed", submit: "submitted", summarise: "summarised", summarize: "summarized",
+  take: "took", talk: "talked", track: "tracked", train: "trained", walk: "walked",
 };
 const IRREGULAR_PAST = new Set(["went", "built", "made", "did", "wrote", "set", "began", "took", "sent", "met", "got", "ran", "found", "led", "held", "gave", "rewrote", "brought", "spent", "kept"]);
 const NOT_VERBS = new Set(["need", "speed", "feed", "seed", "red", "bed", "shed", "bled"]);
@@ -32,4 +43,23 @@ export function toPersonSentence(name: string, raw: string): string {
   if (IRREGULAR_PAST.has(word)) return `${name} ${word} ${tail}`.trim();
   if (PAST[word] && /^[A-Za-z]/.test(first) && tail) return `${name} ${PAST[word]} ${tail}`.trim();
   return `${name}: ${text}`;
+}
+
+/**
+ * A ticked to-do becomes past tense for the update (the to-do itself keeps its wording):
+ * "Share revised timeline with Patrick" → "Shared revised timeline with Patrick".
+ * Unknown first words are left as written. A "(call 5 Oct)" tag is dropped.
+ */
+export function toPastTense(raw: string): string {
+  const capital = /^[A-Z]/.test(raw.trim());
+  let text = raw.trim().replace(/\s*\(call \d{1,2} [A-Z][a-z]{2}\)\s*$/, "");
+  text = text.replace(/^(?:to\s+|todo:\s*|to-do:\s*)/i, "");
+  const m = text.match(/^([A-Za-z]+)(\s+up)?\b([\s\S]*)$/);
+  if (!m) return text;
+  const word = m[1].toLowerCase();
+  if (IRREGULAR_PAST.has(word) || (/^[a-z]+ed$/.test(word) && word.length > 3 && !NOT_VERBS.has(word))) return text;
+  const past = PAST[word];
+  if (!past) return text;
+  const cased = capital ? past[0].toUpperCase() + past.slice(1) : past;
+  return `${cased}${m[2] ?? ""}${m[3]}`;
 }

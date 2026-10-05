@@ -23,3 +23,21 @@ describe("toPersonSentence", () => {
     expect(s("Manju", "Speed improvements")).toBe("Manju: Speed improvements");
   });
 });
+
+import { toPastTense } from "./sentence";
+
+describe("toPastTense", () => {
+  it("turns a to-do into an update line", () => {
+    expect(toPastTense("Share revised timeline with Patrick")).toBe("Shared revised timeline with Patrick");
+    expect(toPastTense("Send updated timeline (call 5 Oct)")).toBe("Sent updated timeline");
+    expect(toPastTense("follow up with EasyPost on batch purchase")).toBe("followed up with EasyPost on batch purchase");
+    expect(toPastTense("Onboard Satya for Dontbelated QA")).toBe("Onboarded Satya for Dontbelated QA");
+    expect(toPastTense("Give KT to Satya")).toBe("Gave KT to Satya");
+    expect(toPastTense("To schedule Corey's check-in for Tuesday")).toBe("Scheduled Corey's check-in for Tuesday");
+  });
+  it("leaves past tense and unknown starts alone", () => {
+    expect(toPastTense("Updated the prototype with Tanay's assets")).toBe("Updated the prototype with Tanay's assets");
+    expect(toPastTense("Patrick's attorney feedback on SaaS wording")).toBe("Patrick's attorney feedback on SaaS wording");
+    expect(toPastTense("QA kickoff")).toBe("QA kickoff");
+  });
+});

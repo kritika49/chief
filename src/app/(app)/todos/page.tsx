@@ -46,7 +46,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader title="To-dos" description="Tick items off as you go — Done items become bullets in your next daily update." />
+      <PageHeader title="To-dos" description="Write them as things to do. When you tick one, it goes into your next update in past tense — “Share the timeline” becomes “Shared the timeline.”" />
       <nav className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Projects">
         {projects.map((p) => (
           <Link
