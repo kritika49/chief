@@ -136,8 +136,32 @@ export async function listChannels(): Promise<SlackChannel[]> {
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function postMessage(channelId: string, text: string) {
-  return call("chat.postMessage", { channel: channelId, text, unfurl_links: false, unfurl_media: false }, z.object({ ts: z.string(), channel: z.string() }), { post: true });
+export type PostAs = { username: string; iconUrl?: string | null };
+
+/**
+ * Posts a message. With `as`, it shows under that name/photo (e.g. "Kritika's
+ * Chief") — needs the chat:write.customize scope; Slack ignores it otherwise.
+ */
+export async function postMessage(channelId: string, text: string, as?: PostAs) {
+  return call(
+    "chat.postMessage",
+    {
+      channel: channelId,
+      text,
+      unfurl_links: false,
+      unfurl_media: false,
+      ...(as ? { username: as.username, ...(as.iconUrl ? { icon_url: as.iconUrl } : {}) } : {}),
+    },
+    z.object({ ts: z.string(), channel: z.string() }),
+    { post: true },
+  );
+}
+
+/** "Kritika Sharma" → "Kritika's Chief" */
+export function postAsName(fullName: string | null | undefined): string {
+  const first = (fullName ?? "").trim().split(/\s+/)[0];
+  if (!first) return "Chief";
+  return `${first}${/s$/i.test(first) ? "'" : "'s"} Chief`;
 }
 
 /** Sends a direct message from Chief to a Slack user. */

@@ -145,6 +145,9 @@ After install, Slack shows "run your app locally" CLI steps — ignore them.
 6. Left menu **Basic Information** → **App Credentials** → **Signing Secret** → **Show** → copy →
    Netlify variable `SLACK_SIGNING_SECRET`.
 7. In each project channel in Slack, type `/invite @Chief`.
+8. (Added later) So updates show as "<PM>'s Chief" with the PM's photo: **OAuth & Permissions** → **Bot Token
+   Scopes** → **Add an OAuth Scope** → `chat:write.customize` → click **reinstall your app** in the yellow
+   banner → **Allow**. (Already included in the manifest for new installs.)
 
 Each PM then opens **Connectors → Slack**: Chief finds their Slack account by email automatically.
 

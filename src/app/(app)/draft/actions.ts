@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayIn } from "@/lib/dates";
 import { memberBullets, replaceMemberBullets, ruleBasedAssembler, type DraftBullet } from "@/lib/draft/assemble";
-import { postMessage, slackConfigured } from "@/lib/connectors/slack";
+import { postAsName, postMessage, slackConfigured } from "@/lib/connectors/slack";
 import { scanProjectEods, windowStart, type UnknownAuthor } from "@/lib/eod/scan";
 import type { EodInput } from "@/lib/draft/assemble";
 import { logHeaderChanges } from "@/lib/header-history";
@@ -162,9 +162,11 @@ export async function postToSlack(draftId: string, text: string): Promise<Result
   const { data: prefs } = await supabase.from("preferences").select("target_channel_ids").eq("user_id", user.id).single();
   const channels = (prefs?.target_channel_ids ?? []) as string[];
   if (!channels.length) return { ok: false, message: "Choose where your update goes first (Settings → Preferences)." };
+  const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle();
+  const as = { username: postAsName(profile?.full_name ?? user.name), iconUrl: profile?.avatar_url ?? user.avatarUrl };
   const ts: Record<string, string> = {};
   try {
-    for (const c of channels) ts[c] = (await postMessage(c, text)).ts;
+    for (const c of channels) ts[c] = (await postMessage(c, text, as)).ts;
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Couldn't post to Slack." };
   }
