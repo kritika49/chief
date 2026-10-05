@@ -20,11 +20,11 @@ describe("ruleBasedAssembler", () => {
       pinned: [{ id: "p1", text: "QA is ongoing." }, { id: "p2", text: "qa is ongoing" }],
     });
     expect(out.map((b) => b.text)).toEqual([
-      "Nileshwar: Worked on settings.",
-      "Nileshwar: Fixed dashboard.",
+      "Nileshwar worked on settings.",
+      "Nileshwar fixed dashboard.",
       "Manju's update is awaited.",
-      "Shourya: Updated the logo.",
-      "Shourya: Shared icons.",
+      "Shourya updated the logo.",
+      "Shourya shared icons.",
       "Sent the timeline to the client.",
       "Client approved the design.",
       "QA is ongoing.",
@@ -44,8 +44,8 @@ describe("replaceMemberBullets", () => {
     const next = memberBullets(members[1], [{ text: "EOD:\n• Fixed payments\n• Reviewed Stripe", keyword: "EOD" }], undefined);
     expect(replaceMemberBullets(current, "m", next).map((b) => b.text)).toEqual([
       "Nileshwar: A.",
-      "Manju: Fixed payments.",
-      "Manju: Reviewed Stripe.",
+      "Manju fixed payments.",
+      "Manju reviewed Stripe.",
       "My own note.",
       "QA is ongoing.",
     ]);

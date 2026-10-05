@@ -1,7 +1,8 @@
 // Rule-based draft assembly (Section 7). Pure — kept behind the DraftAssembler
 // interface so an AI rewriter can be swapped in later.
 import { parseEod } from "@/lib/eod/parse";
-import { awaitedLine, normalizeBullet, prefixName } from "./format";
+import { awaitedLine, normalizeBullet } from "./format";
+import { toPersonSentence } from "./sentence";
 import type { TrackingMode } from "@/lib/types";
 
 export type BulletSource = "eod" | "missing_eod" | "manual_entry" | "todo" | "client_call" | "standup" | "pinned" | "free_text";
@@ -34,7 +35,7 @@ export interface DraftAssembler {
 export function memberBullets(member: MemberInput, eods: EodInput[] | undefined, manualText: string | undefined): DraftBullet[] {
   if (member.tracking === "slack_scan") {
     const parsed = (eods ?? []).flatMap((e) =>
-      parseEod(e.text, e.keyword).map<DraftBullet>((b) => ({ text: prefixName(member.name, b), source: "eod", source_ref: member.personId, source_url: e.url ?? null })),
+      parseEod(e.text, e.keyword).map<DraftBullet>((b) => ({ text: toPersonSentence(member.name, b), source: "eod", source_ref: member.personId, source_url: e.url ?? null })),
     );
     return parsed.length ? parsed : [{ text: awaitedLine(member.name), source: "missing_eod", source_ref: member.personId }];
   }
@@ -43,7 +44,7 @@ export function memberBullets(member: MemberInput, eods: EodInput[] | undefined,
       .split(/\r?\n/)
       .map((l) => l.trim())
       .filter(Boolean)
-      .map((l) => ({ text: prefixName(member.name, l.replace(/^(?:[-*•]|\d{1,2}[.)])\s+/, "")), source: "manual_entry" as const, source_ref: member.personId }));
+      .map((l) => ({ text: toPersonSentence(member.name, l.replace(/^(?:[-*•]|\d{1,2}[.)])\s+/, "")), source: "manual_entry" as const, source_ref: member.personId }));
   }
   return [];
 }
