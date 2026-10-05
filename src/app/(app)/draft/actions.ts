@@ -162,8 +162,8 @@ export async function postToSlack(draftId: string, text: string): Promise<Result
   const { data: prefs } = await supabase.from("preferences").select("target_channel_ids").eq("user_id", user.id).single();
   const channels = (prefs?.target_channel_ids ?? []) as string[];
   if (!channels.length) return { ok: false, message: "Choose where your update goes first (Settings → Preferences)." };
-  const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle();
-  const as = { username: postAsName(profile?.full_name ?? user.name), iconUrl: profile?.avatar_url ?? user.avatarUrl };
+  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  const as = { username: postAsName(profile?.full_name ?? user.name) }; // keeps Chief's own icon
   const ts: Record<string, string> = {};
   try {
     for (const c of channels) ts[c] = (await postMessage(c, text, as)).ts;
