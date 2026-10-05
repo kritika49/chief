@@ -70,6 +70,42 @@ export default async function BriefPage({ searchParams }: { searchParams: Promis
                 ))}
               </CardContent>
             </Card>
+            <Card className="gap-3 md:col-span-2">
+              <CardHeader><CardTitle className="text-base">Who&apos;s working on what</CardTitle></CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                {brief.team.length === 0 && <p className="text-muted-foreground">No team members on this project.</p>}
+                {brief.team.map((m) => (
+                  <div key={m.name}>
+                    <div className="font-medium">{m.name}</div>
+                    {m.lastEod ? (
+                      <div className="mt-1">
+                        <div className="text-xs text-muted-foreground">Latest EOD · {m.lastEod.date}</div>
+                        <ul className="list-disc space-y-0.5 pl-5">{m.lastEod.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">{m.mode === "slack_scan" ? "No EOD in the last few days." : "Update typed by you in the draft."}</div>
+                    )}
+                    {m.openTasks.length > 0 && (
+                      <div className="mt-1">
+                        <div className="text-xs text-muted-foreground">To be worked on (open standup tasks)</div>
+                        <ul className="list-disc space-y-0.5 pl-5">{m.openTasks.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div>
+                  <div className="font-medium">You</div>
+                  {brief.myTodos.today.length + brief.myTodos.later.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">No open to-dos for this project.</div>
+                  ) : (
+                    <>
+                      {brief.myTodos.today.length > 0 && <><div className="mt-1 text-xs text-muted-foreground">Today</div><ul className="list-disc space-y-0.5 pl-5">{brief.myTodos.today.map((t, i) => <li key={i}>{t}</li>)}</ul></>}
+                      {brief.myTodos.later.length > 0 && <><div className="mt-1 text-xs text-muted-foreground">Later</div><ul className="list-disc space-y-0.5 pl-5">{brief.myTodos.later.map((t, i) => <li key={i}>{t}</li>)}</ul></>}
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
             <Card className="gap-3">
               <CardHeader><CardTitle className="text-base">Open to-dos from client calls</CardTitle></CardHeader>
               <CardContent className="text-sm">

@@ -264,7 +264,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         <Card>
           <CardHeader>
             <CardTitle>Options &amp; schedule</CardTitle>
-            <CardDescription>Standup posting, minutes email CC, and when reminders run for this project.</CardDescription>
+            <CardDescription>Standup posting, minutes email CC, and the nightly EOD reminders for this project.</CardDescription>
           </CardHeader>
           <CardContent>
             <ActionForm action={saveProjectOptions} label="Save" pendingLabel="Saving…">
@@ -280,12 +280,8 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
               {p.type === "dev" && (
                 <>
                   <label className="flex items-center gap-3 text-sm">
-                    <input type="checkbox" name="nudges_enabled" defaultChecked={override?.nudges_enabled ?? true} /> Send missing-EOD reminders for this project
+                    <input type="checkbox" name="nudges_enabled" defaultChecked={override?.nudges_enabled ?? true} /> Send missing-EOD reminders for this project (nightly, 11 pm)
                   </label>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="eod_cutoff_time">EOD cutoff for this project (optional)</Label>
-                    <Input id="eod_cutoff_time" name="eod_cutoff_time" type="time" defaultValue={override?.eod_cutoff_time?.slice(0, 5) ?? ""} className="w-36" />
-                  </div>
                 </>
               )}
               <fieldset className="space-y-2 text-sm">

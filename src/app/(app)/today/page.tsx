@@ -47,7 +47,7 @@ export default async function TodayPage() {
     supabase.from("posted_updates").select("posted_at").order("posted_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("meetings").select("id, title, type, started_at").eq("status", "new").in("type", ["client_call", "standup"]).order("started_at", { ascending: false }).limit(10),
     supabase.from("meetings").select("id, title, started_at").eq("type", "unassigned").neq("status", "dismissed").order("started_at", { ascending: false }).limit(10),
-    supabase.from("followups").select("id, text, due_date, project:projects(name)").eq("status", "open").lt("due_date", today).order("due_date"),
+    supabase.from("followups").select("id, text, due_date, project:projects(name)").eq("status", "open").lte("due_date", today).order("due_date"),
     supabase.from("action_items").select("id, text, created_at, assignee:people(name), meeting:meetings(started_at), matches:task_matches(status)").eq("status", "open").eq("source", "standup"),
     supabase.from("task_matches").select("id").eq("status", "suggested"),
   ]);
@@ -112,6 +112,7 @@ export default async function TodayPage() {
           {meetingsToday.length > 0 && (
             <Panel icon={CalendarClock} title="Today's meetings" href="/meetings">
               {meetingsToday.map((m) => <Line key={m.id}><span className="tabular-nums text-muted-foreground">{m.time}</span> {m.title}</Line>)}
+              <p className="pt-1 text-xs text-muted-foreground">Client-call briefs (who&apos;s working on what) are under Meetings → Upcoming client calls.</p>
             </Panel>
           )}
           {(toReview?.length ?? 0) > 0 && (
@@ -125,8 +126,14 @@ export default async function TodayPage() {
             </Panel>
           )}
           {(overdue?.length ?? 0) > 0 && (
-            <Panel icon={ListChecks} title="Overdue follow-ups" href="/tracker">
-              {(overdue as unknown as { id: string; text: string; due_date: string; project: { name: string } | null }[]).map((f) => <Line key={f.id}>{f.text} <Badge variant="destructive" className="ml-1">since {dMon(f.due_date)}</Badge></Line>)}
+            <Panel icon={ListChecks} title="Follow-ups due" href="/tracker">
+              {(overdue as unknown as { id: string; text: string; due_date: string; project: { name: string } | null }[]).map((f) => (
+                <Line key={f.id}>
+                  {f.text} <span className="text-muted-foreground">· {f.project?.name}</span>{" "}
+                  {f.due_date < today ? <Badge variant="destructive" className="ml-1">overdue since {dMon(f.due_date)}</Badge> : <Badge variant="warning" className="ml-1">due today</Badge>}
+                </Line>
+              ))}
+              <p className="pt-1 text-xs text-muted-foreground">Chief doesn&apos;t message you about these — check here.</p>
             </Panel>
           )}
           {stale.length > 0 && (

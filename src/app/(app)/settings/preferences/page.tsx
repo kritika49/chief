@@ -25,13 +25,11 @@ export default async function PreferencesPage() {
   const user = await requireUser();
   const supabase = await createClient();
   const { data: p } = await supabase.from("preferences").select("*").eq("user_id", user.id).maybeSingle();
-  const evening = ((p?.evening_reminders ?? []) as { days: number[]; time: string }[]).concat([{ days: [], time: "" }, { days: [], time: "" }, { days: [], time: "" }]).slice(0, 3);
   const n = (p?.notifications ?? {}) as Record<string, boolean>;
-  const t = (v?: string | null) => (v ?? "").slice(0, 5);
 
   return (
     <>
-      <PageHeader title="Preferences" description="Schedules, where your update goes, email wording and matching." />
+      <PageHeader title="Preferences" description="Where your update goes, the nightly EOD check, email wording and matching." />
       <ActionForm action={savePreferences} label="Save preferences" pendingLabel="Saving…" className="space-y-6">
         <Card>
           <CardHeader><CardTitle>Basics</CardTitle></CardHeader>
@@ -54,46 +52,21 @@ export default async function PreferencesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Schedule</CardTitle>
-            <CardDescription>Chief checks every 10 minutes and does each of these once, on your working days.</CardDescription>
+            <CardTitle>Nightly EOD check — 11:00 pm IST, Mon–Fri</CardTitle>
+            <CardDescription>
+              Once a night Chief reads the day&apos;s EODs from Slack and matches them to standup tasks. Everything else
+              (your draft, pre-call briefs, follow-ups) stays on the platform — no other messages are sent.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="morning">Morning draft</Label>
-              <Input id="morning" name="morning_draft_time" type="time" defaultValue={t(p?.morning_draft_time) || "07:30"} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cutoff">EOD cutoff (missing-EOD reminders)</Label>
-              <Input id="cutoff" name="eod_cutoff_time" type="time" defaultValue={t(p?.eod_cutoff_time) || "19:00"} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="lead">Pre-call brief (minutes before)</Label>
-              <Input id="lead" name="pre_call_lead_minutes" type="number" min={5} max={600} defaultValue={p?.pre_call_lead_minutes ?? 60} />
-            </div>
-            <div className="space-y-3 sm:col-span-3">
-              <Label>Evening to-do reminders</Label>
-              {evening.map((e, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-3 rounded-md border p-2">
-                  <Input name={`ev${i}_time`} type="time" defaultValue={e.time} className="w-32" aria-label={`Reminder ${i + 1} time`} />
-                  <DayPicker name={`ev${i}_days`} value={e.days} />
-                </div>
-              ))}
-              <p className="text-xs text-muted-foreground">Leave a row empty to remove it.</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle>Notifications (Slack DMs)</CardTitle></CardHeader>
-          <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-            {[
-              ["n_draft_ready", "draft_ready", "Draft ready in the morning"],
-              ["n_pre_call_brief", "pre_call_brief", "Pre-call briefs"],
-              ["n_followup_due", "followup_due", "Follow-ups due"],
-              ["n_evening_reminder", "evening_reminder", "Evening to-do reminders"],
-            ].map(([field, key, label]) => (
-              <label key={field} className="flex items-center gap-2"><input type="checkbox" name={field} defaultChecked={n[key] ?? true} /> {label}</label>
-            ))}
+          <CardContent className="space-y-3 text-sm">
+            <label className="flex items-start gap-2">
+              <input type="checkbox" name="n_dev_nudges" defaultChecked={n.dev_nudges ?? true} className="mt-0.5" />
+              <span><b>Remind developers whose EOD is missing</b><span className="block text-xs text-muted-foreground">A gentle Slack DM: &ldquo;Chief here 👋 friendly reminder to drop your EOD when you get a moment.&rdquo; You can switch it off per person in a project&apos;s Team section.</span></span>
+            </label>
+            <label className="flex items-start gap-2">
+              <input type="checkbox" name="n_pm_nightly" defaultChecked={n.pm_nightly ?? true} className="mt-0.5" />
+              <span><b>Send me a summary and a to-do cross-check reminder</b><span className="block text-xs text-muted-foreground">Who posted, who was reminded, and a link to tick off today&apos;s to-dos.</span></span>
+            </label>
           </CardContent>
         </Card>
 

@@ -1,4 +1,5 @@
-// Netlify Scheduled Function: wakes Chief every 10 minutes (live site only).
+// Netlify Scheduled Function: ONE run a night — 11:00 pm IST (17:30 UTC), Mon–Fri,
+// live site only. Chief reads the day's EODs, reminds missing EODs, and DMs the PM.
 // The work happens in /api/jobs/tick, protected by CRON_SECRET.
 const tick = async () => {
   const base = process.env.URL ?? process.env.APP_URL;
@@ -11,4 +12,4 @@ const tick = async () => {
 
 export default tick;
 
-export const config = { schedule: "*/10 * * * *" };
+export const config = { schedule: "30 17 * * 1-5" };

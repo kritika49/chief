@@ -23,6 +23,8 @@ export type Brief = {
   followups: { text: string; owner: string | null; due: string | null; overdue: boolean }[];
   todos: string[];
   blockers: string[];
+  team: { name: string; lastEod: { date: string; lines: string[] } | null; openTasks: string[]; mode: string }[];
+  myTodos: { today: string[]; later: string[] };
 };
 
 export async function buildBrief(db: SupabaseClient, userId: string, projectId: string, timezone?: string | null): Promise<Brief | null> {
@@ -38,6 +40,24 @@ export async function buildBrief(db: SupabaseClient, userId: string, projectId: 
     db.from("eod_bullets").select("text, person:people(name)").eq("user_id", userId).eq("project_id", projectId).eq("is_blocker", true).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
     db.from("todos").select("text").eq("user_id", userId).eq("project_id", projectId).eq("is_blocker", true).neq("list", "done").is("archived_at", null),
   ]);
+  // Who's working on what: latest EOD (last 4 days) + open standup tasks per member; the PM's open to-dos.
+  const [{ data: members }, { data: recentEods }, { data: tasks }, { data: mine }] = await Promise.all([
+    db.from("project_members").select("tracking_mode, person:people(id, name)").eq("user_id", userId).eq("project_id", projectId).neq("tracking_mode", "none"),
+    db.from("slack_messages").select("person_id, raw_text, posted_at, eod:eod_bullets(text, position)").eq("user_id", userId).eq("project_id", projectId).gte("posted_at", new Date(Date.now() - 4 * 86400000).toISOString()).order("posted_at", { ascending: false }),
+    db.from("action_items").select("assignee_person_id, text").eq("user_id", userId).eq("project_id", projectId).eq("status", "open"),
+    db.from("todos").select("text, list").eq("user_id", userId).eq("project_id", projectId).in("list", ["today", "later"]).is("archived_at", null).order("sort_order").order("created_at"),
+  ]);
+  const team = ((members ?? []) as unknown as { tracking_mode: string; person: { id: string; name: string } }[]).map((m) => {
+    const last = ((recentEods ?? []) as unknown as { person_id: string; posted_at: string; eod: { text: string; position: number }[] }[]).find((e) => e.person_id === m.person.id);
+    return {
+      name: m.person.name,
+      mode: m.tracking_mode,
+      lastEod: last ? { date: dMon(last.posted_at, timezone), lines: [...last.eod].sort((a, b) => a.position - b.position).map((b) => b.text) } : null,
+      openTasks: (tasks ?? []).filter((t) => t.assignee_person_id === m.person.id).map((t) => t.text),
+    };
+  });
+  const myTodos = { today: (mine ?? []).filter((t) => t.list === "today").map((t) => t.text), later: (mine ?? []).filter((t) => t.list === "later").map((t) => t.text) };
+
   const h = (p.header ?? {}) as ProjectHeader;
   const headerLines =
     p.type === "dev"
@@ -54,20 +74,7 @@ export async function buildBrief(db: SupabaseClient, userId: string, projectId: 
       ...((eodBlockers ?? []) as unknown as { text: string; person: { name: string } | null }[]).map((b) => `${b.person?.name ? `${b.person.name}: ` : ""}${b.text}`),
       ...(todoBlockers ?? []).map((t) => t.text),
     ],
+    team,
+    myTodos,
   };
-}
-
-/** Plain text for a Slack DM. */
-export function briefText(b: Brief, callTitle: string, when: string, link: string): string {
-  const out = [`Chief here 👋 your brief for *${callTitle}* (${when}):`, "", `*${b.projectName}*`, ...b.headerLines, ""];
-  out.push(`Last client call: ${b.lastCall ?? "none recorded"}`);
-  if (b.updates.length) {
-    out.push("", "*Updates since then:*");
-    for (const u of b.updates) out.push(`_${u.date}_`, ...u.lines.map((l) => `• ${l}`));
-  }
-  if (b.followups.length) out.push("", "*Open follow-ups:*", ...b.followups.map((f) => `• ${f.text}${f.owner ? ` — ${f.owner}` : ""}${f.due ? ` (due ${dMon(f.due)}${f.overdue ? ", overdue" : ""})` : ""}`));
-  if (b.todos.length) out.push("", "*Open to-dos from client calls:*", ...b.todos.map((t) => `• ${t}`));
-  if (b.blockers.length) out.push("", "*Flagged blockers:*", ...b.blockers.map((t) => `• ${t}`));
-  out.push("", `Full brief: ${link}`);
-  return out.join("\n");
 }

@@ -96,15 +96,16 @@ Google keys (Part F), then Fathom (Part H).
   stale flag after N working days. Never changes the daily update.
 - **Tracker**: Follow-ups (overdue highlighted, status, promised vs delivered per call) and Standup tasks.
 - **Decision log**: search by project, dates, keyword; link to the call; manual entry.
-- **Pre-call brief**: page + Slack DM before each client call (last call, updates since, open follow-ups,
-  open client to-dos, headers, blockers).
-- **Scheduler** (every 10 minutes, live site only): morning draft + "draft ready" DM; missing-EOD nudges at
-  the cutoff (Dev + PM projects, per-project overrides); evening to-do reminders; pre-call briefs; follow-up
-  due reminders; hourly EOD scan for task matching. Every job runs once (idempotent).
+- **Pre-call brief** (platform only): last call, updates since, who's working on what (latest EOD + open
+  standup tasks per person, your open to-dos), open follow-ups, open client to-dos, headers, blockers.
+- **Nightly EOD check** (once a night, 11:00 pm IST, Mon–Fri, live site only — near-zero Netlify credits):
+  reads the day's EODs, matches standup tasks, gently reminds developers whose EOD is missing, and DMs the PM
+  one summary with a to-do cross-check link. No other messages: drafts, briefs and follow-ups stay on the
+  platform (Today shows follow-ups due/overdue).
 - **Today** dashboard: draft status, missing EODs, dates reached, today's meetings, meetings to review,
   unassigned meetings, overdue follow-ups, stale tasks, suggested matches.
-- **Preferences**: schedules, working days, evening reminders, pre-call lead, notifications, email wording,
-  auto Gmail draft, blocker words, matching thresholds. **Account**: disconnect all, delete my data.
+- **Preferences**: target channel, working days, nightly check switches (remind developers / summary to me),
+  email wording, auto Gmail draft, blocker words, matching thresholds. **Account**: disconnect all, delete my data.
 - **Project settings**: meeting rules, auto-post standups, minutes CC, schedule overrides.
 - Daily updates post as "<PM>'s Chief"; EOD bullets as sentences ("Shlok worked on …").
 - Tested: 51 unit tests; 92 end-to-end checks against a stand-in database, fake Slack, fake Google and
