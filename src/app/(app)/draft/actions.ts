@@ -60,7 +60,7 @@ export async function createDraft(): Promise<Result> {
 
   const unknown: UnknownAuthor[] = [];
   const errors: string[] = [];
-  const oldest = windowStart(lastPost?.posted_at);
+  const oldest = windowStart(lastPost?.posted_at, Date.now(), prefs?.timezone);
   for (const p of projects) {
     let eods: Record<string, EodInput[]> = {};
     if (p.type === "dev" && slackConfigured()) {
@@ -200,12 +200,12 @@ export async function refreshFromSlack(draftId: string): Promise<Result> {
   const { data: draft } = await supabase.from("drafts").select("id, manual_entries").eq("id", draftId).eq("status", "draft").maybeSingle();
   if (!draft) return { ok: false, message: "This draft is no longer open." };
   const [{ data: prefs }, { data: lastPost }, { data: projects }] = await Promise.all([
-    supabase.from("preferences").select("blocker_keywords").eq("user_id", user.id).maybeSingle(),
+    supabase.from("preferences").select("blocker_keywords, timezone").eq("user_id", user.id).maybeSingle(),
     supabase.from("posted_updates").select("posted_at").order("posted_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("projects").select("id, type").eq("active", true).eq("type", "dev"),
   ]);
   const pasted = (draft.manual_entries ?? {}) as Record<string, Record<string, string>>;
-  const oldest = windowStart(lastPost?.posted_at);
+  const oldest = windowStart(lastPost?.posted_at, Date.now(), prefs?.timezone);
   const unknown: UnknownAuthor[] = [];
   const errors: string[] = [];
   let filled = 0;

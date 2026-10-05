@@ -79,7 +79,14 @@ Google keys (Part F), then Fathom (Part H).
 - Live site `chief-pm.netlify.app` builds from `main` only — updated when the PM says "release" (15 credits).
 - Test site `claude-youthful-ptolemy-d5k800--chief-pm.netlify.app` builds free on every save.
 
+## Release 1 (5 Oct) ✅
+- Live: Slack, Google and Fathom connected; automatic EOD reading; Draft & Post; History.
+- Header dates shown as "12 Oct 2026" (the PM's format).
+- First draft of the day with nothing posted from Chief yet looks back to the previous working day
+  (Monday → Friday).
+- Fixed: a just-added bullet could be lost if Refresh / Add to roster was clicked within a second.
+
 ## Next
-- Retest Slack + Google on the test site, then Fathom (Part H).
+- To-dos (Phase 6) so PM items flow into the update automatically.
 - Then: automatic Slack EOD reading (Phase 7), to-dos (Phase 6), meeting rules + new-project wizard
   (rest of Phase 4), scheduler (Phase 9).

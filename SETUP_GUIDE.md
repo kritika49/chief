@@ -168,7 +168,7 @@ Netlify free plan: 300 credits/month; each **live** (production) deploy costs 15
 
 New features land on the test site first (free). The live site updates only when the PM says "release".
 
-## Part H — Fathom (each PM) ⏳
+## Part H — Fathom (each PM) ✅
 
 1. In Fathom: profile picture → **Settings** → **API Access** → **Generate API key** → copy.
 2. Chief → **Connectors → Fathom** → paste the key → **Connect Fathom**.

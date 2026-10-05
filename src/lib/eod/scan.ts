@@ -12,10 +12,37 @@ type MemberRow = { tracking_mode: string; person: { id: string; slack_user_id: s
 
 const DEFAULT_BLOCKERS = ["blocked", "blocker", "waiting on", "dependency", "issue", "stuck"];
 
-/** Slack ts for the scan window start: last posted update, at most 4 days back, else 48h. */
-export function windowStart(lastPostedAt: string | null | undefined, now = Date.now()): string {
+/** Minutes the timezone is ahead of UTC at a given moment. */
+function tzOffsetMinutes(at: Date, timezone: string): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      .formatToParts(at)
+      .map((p) => [p.type, p.value]),
+  );
+  const asUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second));
+  return Math.round((asUtc - at.getTime()) / 60000);
+}
+
+/** Midnight at the start of the previous working day (Mon → Fri), in the PM's timezone. */
+export function previousWorkingDayStart(now: number, timezone = "UTC", workingDays: number[] = [1, 2, 3, 4, 5]): number {
+  const offset = tzOffsetMinutes(new Date(now), timezone) * 60000;
+  const local = new Date(now + offset); // wall-clock time as if UTC
+  let day = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate());
+  for (let i = 0; i < 7; i++) {
+    day -= 86400000;
+    const iso = new Date(day).getUTCDay() || 7; // 1 = Mon … 7 = Sun
+    if (workingDays.includes(iso)) break;
+  }
+  return day - tzOffsetMinutes(new Date(day - offset), timezone) * 60000;
+}
+
+/**
+ * Slack ts for the scan window start: the last posted update (at most 4 days
+ * back); if nothing was posted from Chief yet, the previous working day.
+ */
+export function windowStart(lastPostedAt: string | null | undefined, now = Date.now(), timezone?: string | null): string {
   const floor = now - 4 * 24 * 3600 * 1000;
-  const start = lastPostedAt ? Math.max(new Date(lastPostedAt).getTime(), floor) : now - 48 * 3600 * 1000;
+  const start = lastPostedAt ? Math.max(new Date(lastPostedAt).getTime(), floor) : Math.max(previousWorkingDayStart(now, timezone ?? "UTC"), floor);
   return (start / 1000).toFixed(6);
 }
 

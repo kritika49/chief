@@ -19,6 +19,13 @@ export function formatDMon(isoDate?: string | null): string {
   return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]}`;
 }
 
+/** Header dates in the update: "2026-10-12" → "12 Oct 2026" (the PM's format). */
+export function formatHeaderDate(isoDate?: string | null): string {
+  if (!isoDate) return "—";
+  const m = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${formatDMon(isoDate)} ${m[1]}` : isoDate;
+}
+
 /** Trim, normalise markers away, end with a period. */
 export function normalizeBullet(text: string): string {
   let t = text.replace(/\s+/g, " ").trim().replace(/^(?:[-*•◦▪‣·]|\d{1,2}[.)])\s+/, "").trim();
@@ -54,11 +61,11 @@ export function renderProject(p: DraftProject): string {
   const lines = [p.name];
   if (p.type === "dev") {
     lines.push(`Planned vs Actual: ${p.header.planned_vs_actual || "—"}`);
-    lines.push(`Dev Completion: ${formatDMon(p.header.dev_completion)}`);
-    lines.push(`Launch: ${formatDMon(p.header.launch)}`);
+    lines.push(`Dev Completion: ${formatHeaderDate(p.header.dev_completion)}`);
+    lines.push(`Launch: ${formatHeaderDate(p.header.launch)}`);
   } else {
     lines.push(`Status: ${p.header.status || "—"}`);
-    lines.push(`Design Started: ${formatDMon(p.header.design_started)}`);
+    lines.push(`Design Started: ${formatHeaderDate(p.header.design_started)}`);
   }
   lines.push("Key Updates:");
   const bullets = cleanBullets(p.bullets);
