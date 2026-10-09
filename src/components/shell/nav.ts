@@ -1,7 +1,6 @@
 import {
   CalendarClock,
   CheckSquare,
-  FileText,
   Gavel,
   History,
   LayoutDashboard,
@@ -15,8 +14,7 @@ import {
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 
 export const mainNav: NavItem[] = [
-  { href: "/today", label: "Today", icon: LayoutDashboard },
-  { href: "/draft", label: "Draft", icon: FileText },
+  { href: "/today", label: "Home", icon: LayoutDashboard },
   { href: "/todos", label: "To-dos", icon: CheckSquare },
   { href: "/meetings", label: "Meetings", icon: CalendarClock },
   { href: "/tracker", label: "Tracker", icon: ListChecks },
@@ -31,5 +29,5 @@ export const bottomNav: NavItem[] = [
 
 export const adminNav: NavItem = { href: "/admin", label: "Admin", icon: ShieldCheck };
 
-/** Mobile bottom tabs: first four main items, then "More". */
-export const mobileTabs: NavItem[] = mainNav.slice(0, 4);
+/** Mobile bottom tabs: first three main items, then "More". */
+export const mobileTabs: NavItem[] = mainNav.slice(0, 3);

@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { todayIn } from "@/lib/dates";
 import { toPastTense } from "@/lib/draft/sentence";
+import { normalizeBullet } from "@/lib/draft/format";
 import { ruleBasedAssembler, type DraftBullet, type EodInput, type MemberInput } from "@/lib/draft/assemble";
 import { slackConfigured } from "@/lib/connectors/slack";
 import { scanProjectEods, windowStart, type UnknownAuthor } from "@/lib/eod/scan";
@@ -126,4 +127,69 @@ export async function finishPosting(db: SupabaseClient, userId: string, draftId:
     const meetingIds = [...new Set((items ?? []).map((i) => i.meeting_id))];
     if (meetingIds.length) await db.from("meetings").update({ included_in_posted_update_id: posted.id }).eq("user_id", userId).in("id", meetingIds);
   }
+}
+
+/**
+ * Keeps an open draft in step with sources that change during the day, without
+ * touching the PM's edits: adds newly done to-dos and newly accepted call/standup
+ * points, removes to-do bullets whose to-do was un-ticked or deleted, and adds
+ * projects created after the draft started. Each source is offered once (tracked
+ * in manual_entries._seen), so a line the PM deletes doesn't come back.
+ */
+export async function syncDraftSources(db: SupabaseClient, userId: string, draftId: string, appUrl: string): Promise<boolean> {
+  const [{ data: draft }, { data: projects }, { data: rows }] = await Promise.all([
+    db.from("drafts").select("header_snapshot, manual_entries").eq("user_id", userId).eq("id", draftId).single(),
+    db.from("projects").select("id").eq("user_id", userId).eq("active", true),
+    db.from("draft_bullets").select("project_id, text, source, source_ref, source_url, position").eq("user_id", userId).eq("draft_id", draftId).order("position"),
+  ]);
+  if (!draft) return false;
+  const entries = (draft.manual_entries ?? {}) as Record<string, unknown>;
+  const firstSync = !Array.isArray(entries._seen);
+  const seen = new Set<string>(firstSync ? [] : (entries._seen as string[]));
+  const known = new Set(Object.keys((draft.header_snapshot ?? {}) as Record<string, unknown>));
+  let changed = false;
+  const allSources = await Promise.all((projects ?? []).map((p) => projectSources(db, userId, p.id, appUrl)));
+  const allDone = new Set(allSources.flatMap((s) => s.doneTodos.map((t) => t.id)));
+  // A to-do that was un-ticked may be offered again when it's ticked again.
+  for (const key of [...seen]) if (key.startsWith("todo:") && !allDone.has(key.slice(5))) seen.delete(key);
+  for (const [i, p] of (projects ?? []).entries()) {
+    const sources = allSources[i];
+    let bullets: DraftBullet[] = ((rows ?? []).filter((r) => r.project_id === p.id) as DraftBullet[]).map((b) => ({ text: b.text, source: b.source, source_ref: b.source_ref, source_url: b.source_url }));
+    const offered = [
+      ...sources.doneTodos.map((t) => ({ key: `todo:${t.id}`, bullet: { text: t.text, source: "todo" as const, source_ref: t.id } })),
+      ...sources.callPoints.map((c) => ({ key: `client_call:${c.id}`, bullet: { text: c.text, source: "client_call" as const, source_ref: c.id, source_url: c.url } })),
+      ...sources.standupLines.map((s) => ({ key: `standup:${s.id}`, bullet: { text: s.text, source: "standup" as const, source_ref: s.id, source_url: s.url } })),
+    ];
+
+    if (!known.has(p.id) && bullets.length === 0) {
+      const members = await projectMembers(db, userId, p.id);
+      bullets = ruleBasedAssembler.assemble({ members, eods: {}, manualEntries: {}, ...sources });
+      await replaceProjectBullets(db, userId, draftId, p.id, bullets);
+      offered.forEach((o) => seen.add(o.key));
+      changed = true;
+      continue;
+    }
+
+    const doneIds = new Set(sources.doneTodos.map((t) => t.id));
+    const before = bullets.length;
+    bullets = bullets.filter((b) => b.source !== "todo" || (b.source_ref && doneIds.has(b.source_ref)));
+    const present = new Set(bullets.map((b) => `${b.source}:${b.source_ref}`));
+    present.forEach((k) => seen.add(k));
+    // On the first sync of an older draft, treat everything as already offered.
+    const additions = firstSync ? [] : offered.filter((o) => !seen.has(o.key)).map((o) => o.bullet);
+    offered.forEach((o) => seen.add(o.key));
+    if (!additions.length && bullets.length === before) continue;
+    const firstPinned = bullets.findIndex((b) => b.source === "pinned");
+    const at = firstPinned < 0 ? bullets.length : firstPinned;
+    const next = [...bullets.slice(0, at), ...additions.map((a) => ({ ...a, text: normalizeBullet(a.text) })), ...bullets.slice(at)];
+    await replaceProjectBullets(db, userId, draftId, p.id, next);
+    changed = true;
+  }
+  const seenList = [...seen].sort();
+  const prev = firstSync ? null : [...(entries._seen as string[])].sort();
+  if (!prev || prev.join() !== seenList.join()) {
+    const { data: fresh } = await db.from("drafts").select("manual_entries").eq("user_id", userId).eq("id", draftId).single();
+    await db.from("drafts").update({ manual_entries: { ...(fresh?.manual_entries ?? {}), _seen: seenList } }).eq("user_id", userId).eq("id", draftId);
+  }
+  return changed;
 }

@@ -101,8 +101,8 @@ The step-by-step setup of every service is in **SETUP_GUIDE.md**, and what has b
 
 ## 4. Navigation
 
-- **Desktop:** a left sidebar with **Today, Draft, To-dos, Meetings, Tracker, Decisions, History**. At the bottom: **Connectors, Settings**, and **Admin** (admins only).
-- **Phone:** bottom tabs **Today, Draft, To-dos, Meetings, More**. **More** holds the rest.
+- **Desktop:** a left sidebar with **Home, To-dos, Meetings, Tracker, Decisions, History**. At the bottom: **Connectors, Settings**, and **Admin** (admins only).
+- **Phone:** bottom tabs **Home, To-dos, Meetings, More**. **More** holds the rest.
 - **Top-right:** a light/dark theme switch and your avatar menu (Account, Sign out).
 
 ---
@@ -114,14 +114,13 @@ The step-by-step setup of every service is in **SETUP_GUIDE.md**, and what has b
 - **Who can get in:** only `@byldd.com` accounts. Anyone else sees "This account can't use Chief".
 - **Admins** (set in `ADMIN_EMAILS`) also see the Admin page.
 
-### 5.2 Today
-Your home screen. Each section only appears when it has something in it.
+### 5.2 Home
+Your one screen for the day: what needs attention at the top, then today's update with a card per project. (The old Today and Draft pages are merged here; old /draft links open Home.) Each attention section only appears when it has something in it.
 
 | Section | What it shows |
 |---|---|
 | **Get Chief ready** | A 5-step setup checklist: Google, Slack, Fathom, first project, first draft. It disappears when everything is done. |
 | **Load your starter projects** | A one-click setup of Bles, Dontbelated and Italica. Only shown to Kritika, and only until it's used. |
-| **Today's update** | Not started, draft open or posted today, with the matching button. |
 | **Missing EODs** | People still marked "update is awaited" in the open draft. |
 | **Dates reached** | A project's Dev Completion or Launch date is today or past ("mark done or revise"). |
 | **Today's meetings** | From your Google Calendar, with a pointer to the client-call briefs. |
@@ -131,10 +130,10 @@ Your home screen. Each section only appears when it has something in it.
 | **Stale standup tasks** | Open tasks with no matching EOD for 2 or more working days. |
 | **Suggested task matches** | Tasks that may be done, waiting for you to confirm in Tracker. |
 
-### 5.3 Draft & Post
-Where the daily update is built.
+### 5.3 Today's update (on Home)
+Where the daily update is built. It is always a draft: nothing is posted or emailed until you press **Approve & Post** (or copy it yourself).
 
-- **Starting a draft:** click **Start today's draft**. Chief then:
+- **Starting a draft:** the first time you open Home each day, Chief assembles the draft for you (unless today's update was already posted, or you discarded today's draft — then a **Start today's draft** / **Start another draft** button is shown). Chief then:
   - reads each Dev + PM project's Slack channels, from your last posted update (or from the previous working day if you've never posted from Chief);
   - creates one bullet per EOD point, written as a sentence ("Shlok worked on card rotation across batches.");
   - adds "<Name>'s update is awaited." for each Slack-tracked person with no EOD;
@@ -146,6 +145,11 @@ Where the daily update is built.
   - **Refresh from Slack**, which picks up late EODs for anyone still awaited;
   - **Add to roster?**, shown when someone not on the team posted an EOD.
 - **Each project card:**
+  - **Status summary** under the project name: the stored Planned vs Actual / dates exactly as saved (— when empty). Chief never guesses a status.
+  - **Brief** and **Settings** links.
+  - **To-dos (side panel):** today's to-dos for the project. Tick one and it's added to the update in past tense; untick and it's removed. Add a to-do right there.
+  - **Calls to review:** calls/standups for this project still waiting for review.
+  - **Staying in step:** when you reopen Home, newly ticked to-dos and newly accepted call points are added. A line you deleted stays deleted.
   - **Status line fields:** Planned vs Actual, Dev Completion and Launch (or Status and Design Started). You can edit them inline, and every change is logged.
   - **Date warnings** when a date has been reached.
   - **Key updates:** every bullet is editable. You can also move it up or down, pin it (repeat it every day), or delete it. Each bullet shows its source (EOD with a link to the Slack message, Awaited, Typed, To-do, Client call, Standup, Pinned, Added).
@@ -155,7 +159,8 @@ Where the daily update is built.
     - **Type <Name>'s update:** for people tracked by hand (e.g. Shourya).
     - **Gentle reminders to copy into Slack:** ready-made text for anyone missing.
   - **Saved** / **Saving** indicator. Edits save automatically.
-- **Slack preview (right side, or below on a phone):** the exact message, with a character count.
+- **Copy update / Preview & post** bar stays at the bottom of the screen while you scroll.
+- **Slack preview (below the project cards):** the exact message, with a character count.
   - **Copy update:** copies it for pasting into Slack yourself.
   - **Approve & Post:** posts to your update channel(s) as "Kritika's Chief", after you confirm.
   - **I posted it myself:** saves it to History when you pasted it by hand.
@@ -455,7 +460,7 @@ Chief uses fixed rules, so the results are predictable and nothing is invented. 
 | Term | Meaning |
 |---|---|
 | **EOD** | End-of-day update a developer posts in Slack. |
-| **Draft** | Today's update while you're still editing it. |
+| **Draft** | Today's update while you're still editing it (shown on Home). |
 | **Status line / header** | Planned vs Actual, Dev Completion and Launch (or Status and Design Started) at the top of each project. |
 | **Pinned line** | A bullet that repeats in every update until unpinned. |
 | **Awaited** | A Slack-tracked person with no EOD since your last update. |

@@ -42,7 +42,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 md:px-8 md:pb-10">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 md:px-8 md:pb-10">{children}</main>
       </div>
 
       {/* Mobile bottom tabs */}
